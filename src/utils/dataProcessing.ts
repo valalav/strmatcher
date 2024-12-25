@@ -50,7 +50,7 @@ export function parseCSVData(
       const profiles: STRProfile[] = [];
       let currentLine = 0;
 
-      Papa.parse(text, {
+      Papa.parse<Record<string, string>>(text, {
         header: true,
         skipEmptyLines: true,
         transformHeader: (header: string) => {
@@ -64,29 +64,31 @@ export function parseCSVData(
             ? 'Kit Number'
             : cleanHeader;
         },
-        step: (results) => {
+        step: (results: Papa.ParseStepResult<Record<string, string>>) => {
           try {
-            if (results.data['Kit Number']) {
+            if (results.data && typeof results.data === 'object' && 'Kit Number' in results.data) {
               const cleanString = (value: string | undefined) =>
                 value ? value.replace(/\s+/g, ' ').trim() : undefined;
-
               const profile: STRProfile = {
-                kitNumber: cleanString(results.data['Kit Number']),
-                name: cleanString(results.data['Name']),
-                country: cleanString(results.data['Country']),
-                haplogroup: cleanString(results.data['Haplogroup']),
+                kitNumber: cleanString('Kit Number' in results.data ? results.data['Kit Number'] : undefined) ?? '',
+                name: cleanString('Name' in results.data ? results.data['Name'] : undefined) ?? '',
+                country: cleanString('Country' in results.data ? results.data['Country'] : undefined) ?? '',
+                haplogroup: cleanString('Haplogroup' in results.data ? results.data['Haplogroup'] : undefined) ?? '',
                 markers: {},
               };
 
               let hasMarkers = false;
               markers.forEach((marker) => {
-                if (results.data[marker]) {
+                if (marker in results.data && results.data[marker]) {
                   const value = results.data[marker];
-                  profile.markers[marker] = processPalindromicMarker(
-                    cleanString(value),
-                    marker
-                  );
-                  hasMarkers = true;
+                  const cleanedValue = cleanString(value);
+                  if (cleanedValue) {
+                    profile.markers[marker] = processPalindromicMarker(
+                      cleanedValue,
+                      marker
+                    );
+                    hasMarkers = true;
+                  }
                 }
               });
 
@@ -99,7 +101,7 @@ export function parseCSVData(
             if (onProgress) {
               onProgress((currentLine / lines) * 100);
             }
-          } catch (error) {
+          } catch (error: unknown) {
             console.warn('Error processing row:', error);
           }
         },
@@ -110,7 +112,7 @@ export function parseCSVData(
             resolve(profiles);
           }
         },
-        error: (error) => {
+        error: (error: Error) => {
           reject(new Error(`CSV parsing failed: ${error.message}`));
         },
       });
@@ -119,10 +121,8 @@ export function parseCSVData(
     }
   });
 }
-
-// Класс для работы с индексами профилей
 export class ProfileIndex {
-  private index: Map<string, Map<string, Set<string>>> = new Map();
+  private index = new Map<string, Map<string, Set<string>>>();
 
   constructor(profiles: STRProfile[]) {
     this.buildIndex(profiles);
@@ -135,22 +135,31 @@ export class ProfileIndex {
           this.index.set(marker, new Map());
         }
         
-        const markerIndex = this.index.get(marker)!;
-        if (!markerIndex.has(value)) {
-          markerIndex.set(value, new Set());
+        const markerIndex = this.index.get(marker);
+        if (markerIndex) {
+          if (!markerIndex.has(value)) {
+            markerIndex.set(value, new Set());
+          }
+          
+          const valueSet = markerIndex.get(value);
+          if (valueSet) {
+            valueSet.add(profile.kitNumber);
+          }
         }
-        
-        markerIndex.get(value)!.add(profile.kitNumber);
       });
     });
   }
 
   findMatchingProfiles(marker: string, value: string): Set<string> {
-    return this.index.get(marker)?.get(value) || new Set();
+    const markerMap = this.index.get(marker);
+    if (!markerMap) return new Set();
+    const valueSet = markerMap.get(value);
+    return valueSet || new Set();
   }
 
   getMarkerValues(marker: string): string[] {
-    return Array.from(this.index.get(marker)?.keys() || []);
+    const markerMap = this.index.get(marker);
+    return markerMap ? Array.from(markerMap.keys()) : [];
   }
 }
 
