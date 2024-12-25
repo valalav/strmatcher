@@ -291,14 +291,19 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
 
       setDatabase(profiles);
 
-    } catch (error: unknown) {
-      console.error('Error processing file:', error);
-      setError(`Failed to process file: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error) {
+      const typedError = error as unknown;
+      if (typedError instanceof Error) {
+        console.error('Error processing file:', typedError);
+        setError(`Failed to process file: ${typedError.message}`);
+      } else {
+        console.error('Error processing file:', typedError);
+        setError(`Failed to process file: ${String(typedError)}`);
+      }
     } finally {
       setLoading(false);
       setProgress(0);
-    }
-  };
+    }    
 
   const handleLoadSelected = async () => {
     setLoading(true);
