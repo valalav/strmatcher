@@ -3,12 +3,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 interface MarkerFilterProps {
-  marker: string;
   values: string[];
   onFilterChange: (values: string[]) => void;
 }
 
-const MarkerFilter: React.FC<MarkerFilterProps> = ({ marker: markerName, values, onFilterChange }) => {
+const MarkerFilter: React.FC<MarkerFilterProps> = ({ values, onFilterChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -40,6 +39,7 @@ const MarkerFilter: React.FC<MarkerFilterProps> = ({ marker: markerName, values,
     <div ref={filterRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={`Filter by ${markerName}`}
         className={`w-full p-1 text-xs border rounded hover:bg-gray-50 ${
           selectedValues.length > 0 ? 'bg-blue-50' : ''
         }`}

@@ -9,7 +9,6 @@ import { sortOptions } from '@/utils/markerSort';
 import { markerCountOptions } from '@/utils/constants';
 import { DatabaseManager } from '@/utils/storage/indexedDB';
 import { useWorker } from '@/hooks/useWorker';
-import { selectUserSettings } from '@/store/userProfile';
 import { exportMatches } from './ExportTools';
 import type { STRProfile, STRMatch, HistoryItem, MarkerCount } from '@/utils/constants';
 

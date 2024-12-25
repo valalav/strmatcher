@@ -291,7 +291,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
 
       setDatabase(profiles);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error processing file:', error);
       setError(`Failed to process file: ${error.message}`);
     } finally {
@@ -327,7 +327,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
       const allProfiles = await dbManager.getProfiles();
       setDatabase(allProfiles);
   
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading repositories:', error);
       setError(`Failed to load repositories: ${error.message}`);
     } finally {

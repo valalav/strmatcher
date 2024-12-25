@@ -41,21 +41,6 @@ export interface GeneticDistanceResult {
   hasAllRequiredMarkers: boolean;
 }
 
-// Подсчет количества доступных маркеров
-function countAvailableMarkers(profile: Record<string, string>, range: string[]): number {
-  let count = 0;
-  for (const marker of range) {
-    if (profile[marker]?.trim()) {
-      if (palindromes[marker]) {
-        count++;
-      } else {
-        count++;
-      }
-    }
-  }
-  return count;
-}
-
 // Подсчет генетической дистанции
 export function calculateGeneticDistance(
   profile1: Record<string, string>,

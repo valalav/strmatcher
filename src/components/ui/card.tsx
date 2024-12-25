@@ -6,9 +6,9 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-export interface CardHeaderProps extends CardProps {}
-export interface CardTitleProps extends CardProps {}
-export interface CardContentProps extends CardProps {}
+export type CardHeaderProps = CardProps;
+export type CardTitleProps = CardProps;
+export type CardContentProps = CardProps;
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className = "", ...props }, ref) => (
   <div
