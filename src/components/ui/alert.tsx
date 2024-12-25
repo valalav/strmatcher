@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -10,7 +12,7 @@ export interface AlertDescriptionProps extends React.HTMLAttributes<HTMLParagrap
 }
 
 export const Alert = React.forwardRef<HTMLDivElement, AlertProps>((props, ref) => {
-  const { variant = "default", ...other } = props;
+  const { variant = "default", className = "", ...other } = props;
   return (
     <div
       ref={ref}
@@ -19,18 +21,22 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>((props, ref) =
         variant === "destructive" 
           ? "border-destructive/50 text-destructive dark:border-destructive"
           : "bg-background text-foreground"
-      } ${props.className || ''}`}
+      } ${className}`}
       {...other}
     />
   );
 });
+
 Alert.displayName = "Alert";
 
-export const AlertDescription = React.forwardRef<HTMLParagraphElement, AlertDescriptionProps>((props, ref) => (
-  <div
-    ref={ref}
-    className={`text-sm [&_p]:leading-relaxed ${props.className || ''}`}
-    {...props}
-  />
-));
+export const AlertDescription = React.forwardRef<HTMLParagraphElement, AlertDescriptionProps>(
+  ({ className = "", ...props }, ref) => (
+    <div
+      ref={ref}
+      className={`text-sm [&_p]:leading-relaxed ${className}`}
+      {...props}
+    />
+  )
+);
+
 AlertDescription.displayName = "AlertDescription";

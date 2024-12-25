@@ -8,7 +8,7 @@ interface MarkerFilterProps {
   onFilterChange: (values: string[]) => void;
 }
 
-const MarkerFilter: React.FC<MarkerFilterProps> = ({ marker, values, onFilterChange }) => {
+const MarkerFilter: React.FC<MarkerFilterProps> = ({ marker: markerName, values, onFilterChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);

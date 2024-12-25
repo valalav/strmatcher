@@ -1,18 +1,17 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { markerGroups, markers, defaultMaxDistance } from '@/utils/constants';
+import { markerGroups, markers } from '@/utils/constants';
 import { parseCSVData } from '@/utils/dataProcessing';
-import { getOrderedMarkers, sortOptions } from '@/utils/markerSort';
+import { sortOptions } from '@/utils/markerSort';
 import { markerCountOptions } from '@/utils/constants';
+import { DatabaseManager } from '@/utils/storage/indexedDB';
 import { useWorker } from '@/hooks/useWorker';
-import { selectUserSettings, updateSettings } from '@/store/userProfile';
+import { selectUserSettings } from '@/store/userProfile';
 import { exportMatches } from './ExportTools';
 import type { STRProfile, STRMatch, HistoryItem, MarkerCount } from '@/utils/constants';
-import { DatabaseManager } from '@/utils/storage/indexedDB';
 
 import STRMarkerGrid from './STRMarkerGrid';
 import DatabaseInput from './DatabaseInput';
@@ -21,10 +20,13 @@ import SearchHistory from './SearchHistory';
 import DataRepositories from './DataRepositories';
 import LoadedKits from './LoadedKits';
 
-const STRMatcher = () => {
-  const userSettings = useSelector(selectUserSettings);
-  const dispatch = useDispatch();
+interface WorkerResponse {
+  type: 'progress' | 'complete';
+  data: STRMatch[];
+  progress?: number;
+}
 
+const STRMatcher: React.FC = () => {
   const [mounted, setMounted] = useState(false);
   const [database, setDatabase] = useState<STRProfile[]>([]);
   const [query, setQuery] = useState<STRProfile | null>(null);
@@ -39,7 +41,7 @@ const STRMatcher = () => {
   const [searchHistory, setSearchHistory] = useState<HistoryItem[]>([]);
   const [markerSortOrder, setMarkerSortOrder] = useState<'default' | 'mutation_rate'>('mutation_rate');
 
-  const { execute: executeMatching, loading: matchingLoading } = useWorker<any, STRMatch[]>((progress) => {
+  const { execute: executeMatching } = useWorker<WorkerResponse, STRMatch[]>((progress) => {
     setProgress(progress * 100);
   });
 
@@ -51,19 +53,16 @@ const STRMatcher = () => {
         await dbManager.init();
         const savedProfiles = await dbManager.getProfiles();
         if (savedProfiles.length > 0) {
-          setDatabase(savedProfiles); // Удалите или замените вызов, чтобы исключить автоматическую загрузку R1b.
+          setDatabase(savedProfiles);
         }
       } catch (error) {
         console.error('Error loading saved profiles:', error);
       }
     };
-    
-    // Удалите автоматический вызов, если он не нужен
-    // loadSavedProfiles();
+    loadSavedProfiles();
   }, []);
-  
 
-  const loadDataFromUrl = async (url: string, type: string) => {
+  const loadDataFromUrl = async (url: string) => {
     setLoading(true);
     setError(null);
     
@@ -79,9 +78,9 @@ const STRMatcher = () => {
         return [...prev, ...profiles.filter(p => !existing.has(p.kitNumber))];
       });
 
-    } catch (error: any) {
-      console.error('Load error:', error);
-      setError(`Failed to load data: ${error.message}`);
+    } catch (error) {
+      console.error('Load error:', error instanceof Error ? error.message : String(error));
+      setError(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
       setProgress(0);
@@ -98,7 +97,6 @@ const STRMatcher = () => {
     setError(null);
   
     try {
-      // Получаем текущий диапазон маркеров
       const currentRange = markerGroups[markerCount];
       const endMarkerIndex = {
         12: currentRange.indexOf('DYS389ii'),
@@ -107,8 +105,7 @@ const STRMatcher = () => {
         111: currentRange.length - 1
       }[markerCount];
   
-      // Создаем объект только с маркерами в текущем диапазоне
-      const markersInRange = {};
+      const markersInRange: Record<string, string> = {};
       for (let i = 0; i <= endMarkerIndex; i++) {
         const marker = currentRange[i];
         if (query.markers[marker]) {
@@ -116,7 +113,6 @@ const STRMatcher = () => {
         }
       }
   
-      // Модифицируем query для сравнения
       const compareQuery = {
         ...query,
         markers: markersInRange
@@ -131,14 +127,15 @@ const STRMatcher = () => {
       });
   
       setMatches(results);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error finding matches:", error);
-      setError(`Error processing matches: ${error.message}`);
+      setError(`Error processing matches: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setMatches([]);
     } finally {
       setLoading(false);
     }
   };
+
   const populateFromKitNumber = (selectedKitNumber: string) => {
     if (!selectedKitNumber) {
       setError('Please enter Kit Number');
@@ -343,7 +340,6 @@ const STRMatcher = () => {
                   }}
                 />
               </div>
-
 
               {matches.length > 0 && (
                 <div className="mt-4 flex gap-2">
