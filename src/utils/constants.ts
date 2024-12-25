@@ -96,15 +96,7 @@ export interface Repository {
   description?: string;
   category?: string;
   url: string;
-  type: 'google_sheet' | 'excel' | 'other';
+  type: 'google_sheet' | 'excel' | 'other' | 'chunked_json';
   sheetName?: string;
+  chunks?: number;
 }
-
-// Экспорт всех сущностей
-export {
-  markers,
-  markerGroups,
-  markerCountOptions,
-  defaultMaxDistance,
-  palindromes
-};

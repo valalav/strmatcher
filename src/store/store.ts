@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import userProfileReducer from './userProfile';
 import { storageMiddleware } from './storageMiddleware';
 
-export const store = configureStore({
+const store = configureStore({
   reducer: {
     userProfile: userProfileReducer
   },

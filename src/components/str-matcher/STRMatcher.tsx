@@ -25,6 +25,14 @@ interface WorkerResponse {
   progress?: number;
 }
 
+interface WorkerParams {
+  query: STRProfile;
+  database: STRProfile[];
+  markerCount: MarkerCount;
+  maxDistance: number;
+  maxMatches: number;
+}
+
 const STRMatcher: React.FC = () => {
   const [mounted, setMounted] = useState(false);
   const [database, setDatabase] = useState<STRProfile[]>([]);
@@ -40,7 +48,7 @@ const STRMatcher: React.FC = () => {
   const [searchHistory, setSearchHistory] = useState<HistoryItem[]>([]);
   const [markerSortOrder, setMarkerSortOrder] = useState<'default' | 'mutation_rate'>('mutation_rate');
 
-  const { execute: executeMatching } = useWorker<WorkerResponse, STRMatch[]>((progress) => {
+  const { execute: executeMatching } = useWorker<WorkerParams, WorkerResponse>((progress) => {
     setProgress(progress * 100);
   });
 
@@ -125,7 +133,7 @@ const STRMatcher: React.FC = () => {
         maxMatches
       });
   
-      setMatches(results);
+      setMatches(results.data);
     } catch (error) {
       console.error("Error finding matches:", error);
       setError(`Error processing matches: ${error instanceof Error ? error.message : 'Unknown error'}`);

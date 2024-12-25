@@ -7,22 +7,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Search } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { selectUserSettings, addCustomRepository } from '@/store/userProfile';
-import type { STRProfile } from '@/utils/constants';
+import type { STRProfile, Repository } from '@/utils/constants';
 import { DatabaseManager } from '@/utils/storage/indexedDB';
 import { processLargeFile } from '@/utils/chunkProcessor';
 import { parseCSVData } from '@/utils/dataProcessing';
-
-type RepositoryType = 'google_sheet' | 'chunked_json';
-
-interface Repository {
-  id: string;
-  name: string;
-  description?: string;
-  category?: string;
-  url?: string;
-  type: RepositoryType;
-  chunks?: number;
-}
 
 const DEFAULT_REPOS = [
   {
@@ -96,6 +84,7 @@ const DEFAULT_REPOS = [
     category: 'Y-DNA',
     type: 'chunked_json' as const,
     chunks: 16,
+    url: '/chunk_0.json'
   },
 ];
 
@@ -125,8 +114,12 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
   });
 
   useEffect(() => {
-    setRepositories([...DEFAULT_REPOS, ...userSettings.customRepositories]);
+    setRepositories([
+      ...DEFAULT_REPOS,
+      ...(userSettings.customRepositories as Repository[]),
+    ]);
   }, [userSettings.customRepositories]);
+  
 
   const loadChunkedDatabase = async (chunks: number) => {
     setLoading(true);
@@ -140,7 +133,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
       const processedKits = new Set<string>();
 
       const cleanKey = (key: string) => key.replace(/^\uFEFF/, '');
-      const cleanProfile = (profile: STRProfile) => {
+      const cleanProfile = (profile: Partial<STRProfile>) => {
         const kitNumber = cleanKey(profile?.markers?.['Kit Number'] || profile?.markers?.KitNumber || '');
         return {
           ...profile,
@@ -165,7 +158,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
         const chunkDataCleaned = chunkData.map(cleanProfile);
 
         const validProfiles = chunkDataCleaned
-          .filter((profile) => {
+          .filter((profile: Partial<STRProfile>) => {
             if (!profile.kitNumber || typeof profile.kitNumber !== 'string') {
               console.warn('Skipping profile without kitNumber:', profile);
               return false;
@@ -176,7 +169,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
             processedKits.add(profile.kitNumber);
             return true;
           })
-          .map((profile) => ({
+          .map((profile: Partial<STRProfile>) => ({
             kitNumber: profile.kitNumber,
             name: profile.name || 'Unknown',
             country: profile.country || 'Unknown',

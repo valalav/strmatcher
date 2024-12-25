@@ -39,7 +39,6 @@ const MarkerFilter: React.FC<MarkerFilterProps> = ({ values, onFilterChange }) =
     <div ref={filterRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        aria-label={`Filter by ${markerName}`}
         className={`w-full p-1 text-xs border rounded hover:bg-gray-50 ${
           selectedValues.length > 0 ? 'bg-blue-50' : ''
         }`}
