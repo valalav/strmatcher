@@ -3,22 +3,27 @@ import type { UserProfile } from './userProfile';
 
 const STORAGE_KEY = 'str_matcher_user_profile';
 
-export const storageMiddleware: Middleware = store => next => action => {
-  const result = next(action);
-  
-  if (action.type.startsWith('userProfile/')) {
-    try {
-      const state = store.getState();
-      const profile: UserProfile = state.userProfile;
+export const storageMiddleware: Middleware = 
+  (store) => 
+  (next) => 
+  (action: unknown): unknown => {
+    if (typeof action === 'object' && action !== null && 'type' in action) {
+      const result = next(action);
       
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-    } catch (error) {
-      console.error('Failed to save profile to storage:', error);
+      if (typeof action.type === 'string' && action.type.startsWith('userProfile/')) {
+        try {
+          const state = store.getState();
+          const profile: UserProfile = state.userProfile;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+        } catch (error) {
+          console.error('Failed to save profile to storage:', error);
+        }
+      }
+      
+      return result;
     }
-  }
-  
-  return result;
-};
+    return next(action);
+  };
 
 export function loadProfileFromStorage(): UserProfile | null {
   try {
