@@ -31,7 +31,7 @@ const DEFAULT_REPOS = [
     description: 'Основная база данных Y-DNA',
     category: 'Y-DNA',
     url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTp8VNm5yS63RiflBpMY4b8d4RBTPecjU_RrC10EDcgSitcQxRtt1QbeN67g8bYOyqB088GLOTHIG5g/pub?gid=90746110&single=true&output=csv',
-    type: 'google_sheet' as const
+    type: 'google_sheet' as const,
   },
   {
     id: 'G',
@@ -39,7 +39,7 @@ const DEFAULT_REPOS = [
     description: 'База данных для гаплогруппы G',
     category: 'Y-DNA',
     url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSOBSOYSNmI7X0vbDNa8qXCloT18ONgs1r9kht_gO62RcMqHuirFZWh-aAl45EOBr_2X-r285ZG4bnf/pub?gid=886727200&single=true&output=csv',
-    type: 'google_sheet' as const
+    type: 'google_sheet' as const,
   },
   {
     id: 'r1a',
@@ -47,7 +47,7 @@ const DEFAULT_REPOS = [
     description: 'База данных для гаплогруппы R1a',
     category: 'Y-DNA',
     url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRU8tnVM0DyHCYmpdQhKAdyjiwc1Q0GYDb1EOBEZu_YPvmEvfQZPSZAsZo2Cvkk3R6qMElcTVKNjNYZ/pub?gid=1094141657&single=true&output=csv',
-    type: 'google_sheet' as const
+    type: 'google_sheet' as const,
   },
   {
     id: 'J2',
@@ -55,7 +55,7 @@ const DEFAULT_REPOS = [
     description: 'База данных для гаплогруппы J2',
     category: 'Y-DNA',
     url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdOZKzZjPnAo2WsmK86PymoWNxGm2Dc1kEMGAbtw5kWHPDURgN9e5PRR3x9_ag-CdAntzcSJRddbOS/pub?gid=1964163364&single=true&output=csv',
-    type: 'google_sheet' as const
+    type: 'google_sheet' as const,
   },
   {
     id: 'J1',
@@ -63,7 +63,7 @@ const DEFAULT_REPOS = [
     description: 'База данных для гаплогруппы J1',
     category: 'Y-DNA',
     url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSf-FRmBHW8hnCopHADt54LApuvyuhpeImR-5xZPRHY_Ca91H8t_uPPgtrN0cIOZHzamN0zjwxV60cX/pub?gid=1814447974&single=true&output=csv',
-    type: 'google_sheet' as const
+    type: 'google_sheet' as const,
   },
   {
     id: 'E',
@@ -71,7 +71,7 @@ const DEFAULT_REPOS = [
     description: 'База данных для гаплогруппы E',
     category: 'Y-DNA',
     url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTvc9oN1jumSux4OBv8MUEzCJyabastzp06C7tuEwv_Ud_DW60ISrVI1D-gKjWs6JibefG8D_pQfIyI/pub?gid=1307961167&single=true&output=csv',
-    type: 'google_sheet' as const
+    type: 'google_sheet' as const,
   },
   {
     id: 'I',
@@ -79,7 +79,7 @@ const DEFAULT_REPOS = [
     description: 'База данных для гаплогруппы I',
     category: 'Y-DNA',
     url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRasrJA3vR1vJineI98GIvmNBL6UXxdpLbJ-k0Qb_60ukvGn9ZDkopG3FDKm0GJg8M8i7r5vK__qsI-/pub?gid=1455355483&single=true&output=csv',
-    type: 'google_sheet' as const
+    type: 'google_sheet' as const,
   },
   {
     id: 'Others',
@@ -87,7 +87,7 @@ const DEFAULT_REPOS = [
     description: 'База данных для гаплогруппы Others',
     category: 'Y-DNA',
     url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSs84tXzDaQzQHjfG4TlR7ARTaE_iU12cgKzjxg7GaQPHRkbisVHRJ8ywx7ldkKV4hyI5pBwYVlYwLz/pub?gid=65836825&single=true&output=csv',
-    type: 'google_sheet' as const
+    type: 'google_sheet' as const,
   },
   {
     id: 'r1b',
@@ -95,8 +95,8 @@ const DEFAULT_REPOS = [
     description: 'База данных для гаплогруппы R1b',
     category: 'Y-DNA',
     type: 'chunked_json' as const,
-    chunks: 16
-  }
+    chunks: 16,
+  },
 ];
 
 interface DataRepositoriesProps {
@@ -107,7 +107,7 @@ interface DataRepositoriesProps {
 const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setDatabase }) => {
   const dispatch = useDispatch();
   const userSettings = useSelector(selectUserSettings);
-  
+
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -121,7 +121,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
     description: '',
     category: '',
     url: '',
-    type: 'google_sheet' as const
+    type: 'google_sheet' as const,
   });
 
   useEffect(() => {
@@ -131,41 +131,41 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
   const loadChunkedDatabase = async (chunks: number) => {
     setLoading(true);
     setProgress(0);
-  
+
     try {
       const dbManager = new DatabaseManager();
       await dbManager.init();
       await dbManager.clearProfiles();
-  
+
       const processedKits = new Set<string>();
-  
+
       const cleanKey = (key: string) => key.replace(/^\uFEFF/, '');
       const cleanProfile = (profile: STRProfile) => {
-        const kitNumber = cleanKey(profile?.markers?.["Kit Number"] || profile?.markers?.KitNumber || '');
+        const kitNumber = cleanKey(profile?.markers?.['Kit Number'] || profile?.markers?.KitNumber || '');
         return {
           ...profile,
           kitNumber,
           markers: {
             ...profile.markers,
-            ["Kit Number"]: kitNumber,
+            ['Kit Number']: kitNumber,
           },
         };
       };
-  
+
       for (let i = 0; i < chunks; i++) {
         console.log(`Loading chunk ${i}...`);
         const response = await fetch(`/chunk_${i}.json`);
-  
+
         if (!response.ok) {
           console.warn(`Failed to load chunk ${i}: ${response.statusText}`);
           continue;
         }
-  
+
         const chunkData = await response.json();
         const chunkDataCleaned = chunkData.map(cleanProfile);
-  
+
         const validProfiles = chunkDataCleaned
-          .filter(profile => {
+          .filter((profile) => {
             if (!profile.kitNumber || typeof profile.kitNumber !== 'string') {
               console.warn('Skipping profile without kitNumber:', profile);
               return false;
@@ -176,35 +176,39 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
             processedKits.add(profile.kitNumber);
             return true;
           })
-          .map(profile => ({
+          .map((profile) => ({
             kitNumber: profile.kitNumber,
             name: profile.name || 'Unknown',
             country: profile.country || 'Unknown',
             haplogroup: profile.haplogroup || 'Unknown',
             markers: profile.markers || {},
           }));
-  
+
         console.log(`Processed valid profiles: ${validProfiles.length}`);
-  
+
         const batchSize = 50;
         for (let j = 0; j < validProfiles.length; j += batchSize) {
           const batch = validProfiles.slice(j, j + batchSize);
           await dbManager.saveProfiles(batch);
         }
-  
+
         setProgress(((i + 1) / chunks) * 100);
-        console.log(`Loading progress: ${Math.round((i + 1) / chunks * 100)}%`);
-  
-        await new Promise(resolve => setTimeout(resolve, 50));
+        console.log(`Loading progress: ${Math.round(((i + 1) / chunks) * 100)}%`);
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
-  
+
       const allProfiles = await dbManager.getProfiles();
       console.log(`Load complete. Total profiles saved: ${allProfiles.length}`);
       setDatabase(allProfiles);
-  
     } catch (error: unknown) {
-      console.error('Error loading database:', error);
-      setError(`Error loading database: ${error instanceof Error ? error.message : String(error)}`);
+      if (error instanceof Error) {
+        console.error('Error loading database:', error.message);
+        setError(`Error loading database: ${error.message}`);
+      } else {
+        console.error('Error loading database:', error);
+        setError(`Error loading database: Unknown error`);
+      }
     } finally {
       setLoading(false);
       setProgress(0);
@@ -212,7 +216,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
   };
 
   const processExcelFile = async (
-    worksheet: ExcelJS.Worksheet, 
+    worksheet: ExcelJS.Worksheet,
     dbManager: DatabaseManager
   ): Promise<STRProfile[]> => {
     const profiles: STRProfile[] = [];
@@ -226,13 +230,13 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
 
       if (kitNumber && !uniqueKits.has(kitNumber)) {
         uniqueKits.add(kitNumber);
-        
+
         const profile: STRProfile = {
           kitNumber,
           name: row.getCell(2).text.trim() || '',
           country: row.getCell(3).text.trim() || '',
           haplogroup: row.getCell(4).text.trim() || '',
-          markers: {}
+          markers: {},
         };
 
         for (let col = 5; col <= worksheet.columnCount; col++) {
@@ -248,7 +252,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
         if (profiles.length >= 1000) {
           await dbManager.saveProfiles(profiles);
           profiles.length = 0;
-          await new Promise(resolve => setTimeout(resolve, 0));
+          await new Promise((resolve) => setTimeout(resolve, 0));
         }
       }
 
@@ -256,7 +260,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
       setProgress((processedRows / totalRows) * 100);
 
       if (processedRows % 1000 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
     }
 
@@ -290,30 +294,30 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
       }
 
       setDatabase(profiles);
-
-    } catch (error) {
-      const typedError = error as unknown;
-      if (typedError instanceof Error) {
-        console.error('Error processing file:', typedError);
-        setError(`Failed to process file: ${typedError.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Error processing file:', error.message);
+        setError(`Failed to process file: ${error.message}`);
       } else {
-        console.error('Error processing file:', typedError);
-        setError(`Failed to process file: ${String(typedError)}`);
+        console.error('Error processing file:', error);
+        setError('Failed to process file: Unknown error');
       }
     } finally {
       setLoading(false);
       setProgress(0);
-    }    
+    }
+  };
 
   const handleLoadSelected = async () => {
     setLoading(true);
     setError(null);
+
     try {
       const dbManager = new DatabaseManager();
       await dbManager.init();
-  
+
       for (const repoId of selectedRepos) {
-        const repo = repositories.find(r => r.id === repoId);
+        const repo = repositories.find((r) => r.id === repoId);
         if (repo) {
           if (repo.type === 'chunked_json' && repo.id === 'r1b') {
             await loadChunkedDatabase(repo.chunks || 0);
@@ -328,50 +332,54 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
           }
         }
       }
-  
+
       const allProfiles = await dbManager.getProfiles();
       setDatabase(allProfiles);
-  
     } catch (error: unknown) {
-      console.error('Error loading repositories:', error);
-      setError(`Failed to load repositories: ${error instanceof Error ? error.message : String(error)}`);
+      if (error instanceof Error) {
+        console.error('Error loading repositories:', error.message);
+        setError(`Failed to load repositories: ${error.message}`);
+      } else {
+        console.error('Error loading repositories:', error);
+        setError('Failed to load repositories: Unknown error');
+      }
     } finally {
       setLoading(false);
       setProgress(0);
     }
   };
-
   const addRepository = () => {
     if (!newRepo.name || !newRepo.url) return;
-    
+
     const repository: Repository = {
       ...newRepo,
-      id: Date.now().toString()
+      id: Date.now().toString(),
     };
-    
+
     dispatch(addCustomRepository(repository));
-    
+
     setNewRepo({
       name: '',
       description: '',
       category: '',
       url: '',
-      type: 'google_sheet'
+      type: 'google_sheet',
     });
-    
+
     setIsAdding(false);
   };
 
-  const filteredRepos = repositories.filter(repo => 
-    repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    repo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    repo.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRepos = repositories.filter(
+    (repo) =>
+      repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      repo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      repo.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const toggleRepository = (id: string) => {
-    setSelectedRepos(prev => 
-      prev.includes(id) 
-        ? prev.filter(repoId => repoId !== id)
+    setSelectedRepos((prev) =>
+      prev.includes(id)
+        ? prev.filter((repoId) => repoId !== id)
         : [...prev, id]
     );
   };
@@ -428,9 +436,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
 
       <CardContent>
         {error && (
-          <div className="p-4 mb-4 text-red-700 bg-red-100 rounded">
-            {error}
-          </div>
+          <div className="p-4 mb-4 text-red-700 bg-red-100 rounded">{error}</div>
         )}
 
         {loading && (
@@ -448,7 +454,9 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
                 type="text"
                 className="w-full p-2 border rounded"
                 value={newRepo.name}
-                onChange={e => setNewRepo(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setNewRepo((prev) => ({ ...prev, name: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -457,7 +465,12 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
                 type="text"
                 className="w-full p-2 border rounded"
                 value={newRepo.description}
-                onChange={e => setNewRepo(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setNewRepo((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
               />
             </div>
             <div>
@@ -466,7 +479,12 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
                 type="text"
                 className="w-full p-2 border rounded"
                 value={newRepo.category}
-                onChange={e => setNewRepo(prev => ({ ...prev, category: e.target.value }))}
+                onChange={(e) =>
+                  setNewRepo((prev) => ({
+                    ...prev,
+                    category: e.target.value,
+                  }))
+                }
               />
             </div>
             <div>
@@ -475,7 +493,9 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
                 type="text"
                 className="w-full p-2 border rounded"
                 value={newRepo.url}
-                onChange={e => setNewRepo(prev => ({ ...prev, url: e.target.value }))}
+                onChange={(e) =>
+                  setNewRepo((prev) => ({ ...prev, url: e.target.value }))
+                }
               />
             </div>
             <button
@@ -488,7 +508,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
         )}
 
         <div className="grid grid-cols-5 gap-4">
-          {filteredRepos.map(repo => (
+          {filteredRepos.map((repo) => (
             <div key={repo.id} className="p-2 border rounded hover:bg-gray-50">
               <div className="flex items-center gap-2 mb-2">
                 <button
