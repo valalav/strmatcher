@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { Repository } from '../utils/constants';
-import type { RootState } from '../store'; // Убедитесь, что у вас есть `RootState` в проекте
+import type { RootState } from './store';
 
 interface UserSettings {
   markerCount: number;
@@ -29,7 +29,7 @@ const initialState: UserState = {
 };
 
 const userSlice = createSlice({
-  name: 'user',
+  name: 'userProfile',
   initialState,
   reducers: {
     setUser(state, action: PayloadAction<string>) {
@@ -55,7 +55,7 @@ const userSlice = createSlice({
 });
 
 // Селекторы
-export const selectUserSettings = (state: RootState) => state.user.settings;
+export const selectUserSettings = (state: RootState) => state.userProfile.settings;
 export const addCustomRepository = userSlice.actions.addRepository;
 
 // Экспорт экшенов и редюсера
