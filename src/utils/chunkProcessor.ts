@@ -1,10 +1,8 @@
 import { STRProfile } from '@/utils/constants';
 import { DatabaseManager } from './storage/indexedDB';
 
-const CHUNK_READ_SIZE = 256 * 1024; // 256KB чтение
-const BATCH_SIZE = 25; // 25 профилей за раз
-
-const readFileInChunks = async function* (file: File): AsyncGenerator<string> {
+async function* readFileInChunks(file: File): AsyncGenerator<string> {
+  const CHUNK_READ_SIZE = 256 * 1024;
   let position = 0;
   let readHeader = false;
   const decoder = new TextDecoder();
@@ -39,12 +37,15 @@ export async function processLargeFile(
   const processedKits = new Set<string>();
 
   try {
+    console.log(`Reading first part (headers)`);
     const firstChunk = await readChunk(file, 0, CHUNK_SIZE);
     const firstLines = firstChunk.split('\n');
     header = firstLines[0].split(',').map(h => h.trim());
+    console.log(`Headers:`, header);
     offset = firstChunk.indexOf('\n') + 1;
 
     while (offset < file.size) {
+      console.log(`Reading chunk at position ${offset}`);
       const chunk = await readChunk(file, offset, CHUNK_SIZE);
       const lines = chunk.split('\n');
       
@@ -75,6 +76,7 @@ export async function processLargeFile(
         profiles.push(profile);
 
         if (profiles.length % 100 === 0) {
+          console.log(`Saving 100 profiles to IndexedDB...`);
           await dbManager.saveProfiles(profiles.splice(0, 100));
           await new Promise(r => setTimeout(r, 10));
         }
@@ -82,6 +84,7 @@ export async function processLargeFile(
 
       offset += CHUNK_SIZE;
       onProgress((offset / file.size) * 100);
+      console.log(`Loading progress: ${((offset / file.size) * 100).toFixed(2)}%`);
 
       await new Promise(r => setTimeout(r, 10));
     }
@@ -90,9 +93,10 @@ export async function processLargeFile(
       await dbManager.saveProfiles(profiles);
     }    
 
+    console.log(`Load complete. Getting all profiles from IndexedDB...`);
     return await dbManager.getProfiles();
   } catch (error) {
-    console.error('Ошибка обработки файла:', error);
+    console.error('Error processing file:', error);
     throw error;
   }
 }
@@ -106,3 +110,5 @@ async function readChunk(file: File, offset: number, size: number): Promise<stri
     reader.readAsText(chunk);
   });
 }
+
+export { readFileInChunks };

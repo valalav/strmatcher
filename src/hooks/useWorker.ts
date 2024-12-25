@@ -6,6 +6,14 @@ interface WorkerMessage<T> {
   progress?: number;
 }
 
+interface WorkerProps<T, R> {
+  query: T;
+  database: T[];
+  markerCount: number;
+  maxDistance: number;
+  maxMatches: number;
+}
+
 export function useWorker<T, R>(onProgress?: (progress: number) => void) {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,7 +26,7 @@ export function useWorker<T, R>(onProgress?: (progress: number) => void) {
     return () => workerRef.current?.terminate();
   }, []);
 
-  const execute = useCallback((data: T): Promise<R> => {
+  const execute = useCallback((data: WorkerProps<T, R>): Promise<R> => {
     if (!workerRef.current) {
       throw new Error('Worker not initialized');
     }

@@ -17,6 +17,7 @@ export class FileProcessor {
     const profiles: STRProfile[] = [];
     const uniqueKits = new Set<string>();
 
+    // Читаем первый чанк для получения заголовка
     const firstChunkBlob = file.slice(0, this.CHUNK_SIZE);
     const firstChunkText = await this.readBlob(firstChunkBlob);
     const headerEnd = firstChunkText.indexOf('\n');
