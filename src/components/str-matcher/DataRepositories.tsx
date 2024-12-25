@@ -202,7 +202,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
       console.log(`Load complete. Total profiles saved: ${allProfiles.length}`);
       setDatabase(allProfiles);
   
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error loading database:', error);
       setError(`Error loading database: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -293,7 +293,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
 
     } catch (error: unknown) {
       console.error('Error processing file:', error);
-      setError(`Failed to process file: ${error.message}`);
+      setError(`Failed to process file: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setLoading(false);
       setProgress(0);
@@ -329,7 +329,7 @@ const DataRepositories: React.FC<DataRepositoriesProps> = ({ onLoadData, setData
   
     } catch (error: unknown) {
       console.error('Error loading repositories:', error);
-      setError(`Failed to load repositories: ${error.message}`);
+      setError(`Failed to load repositories: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setLoading(false);
       setProgress(0);
