@@ -1,85 +1,72 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { Repository } from '../utils/constants';
+import { STRProfile, STRMatch, MarkerCount } from '@/utils/constants';
+import { calculateGeneticDistance } from '@/utils/calculations';
 
-export interface UserSettings {
-  defaultMarkerCount: number;
+// Типы данных для входящего сообщения
+interface WorkerParams {
+  query: STRProfile;
+  database: STRProfile[];
+  markerCount: MarkerCount;
   maxDistance: number;
   maxMatches: number;
-  markerSortOrder: 'default' | 'mutation_rate';
-  selectedRepositories: string[];
-  customRepositories: Repository[];
-  tableSettings: {
-    pageSize: number;
-    visibleColumns: string[];
-  };
-  performance: {
-    useWorkers: boolean;
-    chunkSize: number;
-    cacheResults: boolean;
-  };
 }
 
-export interface UserProfile {
-  id: string;
-  settings: UserSettings;
-  lastSyncTime?: Date;
+// Типы данных для выходящего сообщения
+export interface WorkerResponse {
+  type: 'progress' | 'complete' | 'error';
+  data?: STRMatch[];
+  progress?: number; 
+  message?: string;
 }
 
-const initialState: UserProfile = {
-  id: '',
-  settings: {
-    defaultMarkerCount: 37,
-    maxDistance: 25,
-    maxMatches: 200,
-    markerSortOrder: 'mutation_rate',
-    selectedRepositories: [],
-    customRepositories: [],
-    tableSettings: {
-      pageSize: 50,
-      visibleColumns: []
-    },
-    performance: {
-      useWorkers: true,
-      chunkSize: 1000,
-      cacheResults: true
-    }
+// Обработчик сообщений от главного потока
+self.onmessage = (event: MessageEvent<WorkerParams>) => {
+  console.log('Worker received data:', event.data);
+
+  const { query, database, markerCount, maxDistance, maxMatches } = event.data;
+
+  try {
+    // Выполняем поиск совпадений
+    const matches = findMatches(query, database, markerCount, maxDistance, maxMatches);
+
+    // Отправляем результат обратно
+    self.postMessage({ type: 'complete', data: matches });
+  } catch (error) {
+    console.error('Error in worker:', error);
+    self.postMessage({ type: 'error', message: error instanceof Error ? error.message : String(error) });
   }
 };
 
-const userProfileSlice = createSlice({
-  name: 'userProfile',
-  initialState,
-  reducers: {
-    setProfile: (state, action: PayloadAction<UserProfile>) => {
-      return { ...state, ...action.payload };
-    },
-    updateSettings: (state, action: PayloadAction<Partial<UserSettings>>) => {
-      state.settings = { ...state.settings, ...action.payload };
-    },
-    addCustomRepository: (state, action: PayloadAction<Repository>) => {
-      state.settings.customRepositories.push(action.payload);
-    },
-    removeCustomRepository: (state, action: PayloadAction<string>) => {
-      state.settings.customRepositories = state.settings.customRepositories
-        .filter(repo => repo.id !== action.payload);
-    },
-    setLastSyncTime: (state) => {
-      state.lastSyncTime = new Date();
-    },
-    resetProfile: () => initialState
-  }
-});
+// Функция для поиска совпадений
+const findMatches = (
+  query: STRProfile,
+  database: STRProfile[],
+  markerCount: MarkerCount,
+  maxDistance: number,
+  maxMatches: number
+): STRMatch[] => {
+  const matches: STRMatch[] = [];
+  const totalProfiles = database.length;
 
-export const selectUserProfile = (state: { userProfile: UserProfile }) => state.userProfile;
-export const selectUserSettings = (state: { userProfile: UserProfile }) => state.userProfile.settings;
+  database.forEach((profile, index) => {
+    // Рассчитываем генетическое расстояние
+    const result = calculateGeneticDistance(query.markers, profile.markers, markerCount);
 
-export const {
-  setProfile,
-  updateSettings,
-  addCustomRepository,
-  removeCustomRepository,
-  setLastSyncTime,
-  resetProfile
-} = userProfileSlice.actions;
+    // Если расстояние в пределах допустимого, добавляем в результаты
+    if (result.distance <= maxDistance) {
+      matches.push({
+        profile,
+        ...result,
+      });
+    }
 
-export default userProfileSlice.reducer;
+    // Отправляем прогресс выполнения
+    if (index % 100 === 0) {
+      const progress = (index / totalProfiles) * 100;
+      self.postMessage({ type: 'progress', progress });
+    }
+  });
+
+  // Сортируем результаты по расстоянию и ограничиваем количество
+  matches.sort((a, b) => a.distance - b.distance);
+  return matches.slice(0, maxMatches);
+};
