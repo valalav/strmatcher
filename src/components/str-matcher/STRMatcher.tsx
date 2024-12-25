@@ -95,7 +95,9 @@ const STRMatcher: React.FC = () => {
   };
 
   const handleFindMatches = async () => {
+    console.log("Starting handleFindMatches"); // Лог начала функции
     if (!query || !database.length) {
+      console.log("Error: Missing query or database"); // Лог ошибки ввода
       setError("Kit number and database required");
       return;
     }
@@ -104,6 +106,7 @@ const STRMatcher: React.FC = () => {
     setError(null);
   
     try {
+      console.log("Preparing marker ranges for comparison");
       const currentRange = markerGroups[markerCount];
       const endMarkerIndex = {
         12: currentRange.indexOf('DYS389ii'),
@@ -120,28 +123,33 @@ const STRMatcher: React.FC = () => {
         }
       }
   
+      console.log("Markers prepared for comparison:", markersInRange);
+  
       const compareQuery = {
         ...query,
-        markers: markersInRange
+        markers: markersInRange,
       };
   
+      console.log("Executing worker for matching");
       const results = await executeMatching({
         query: compareQuery,
-        database: database.filter(p => p.kitNumber !== query.kitNumber),
+        database: database.filter((p) => p.kitNumber !== query.kitNumber),
         markerCount,
         maxDistance,
-        maxMatches
+        maxMatches,
       });
   
+      console.log("Matching results received:", results.data);
       setMatches(results.data);
     } catch (error) {
       console.error("Error finding matches:", error);
       setError(`Error processing matches: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setMatches([]);
     } finally {
+      console.log("handleFindMatches completed"); // Лог завершения функции
       setLoading(false);
     }
-  };
+  };  
 
   const populateFromKitNumber = (selectedKitNumber: string) => {
     if (!selectedKitNumber) {
