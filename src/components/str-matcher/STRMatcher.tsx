@@ -48,8 +48,10 @@ const STRMatcher: React.FC = () => {
   const [searchHistory, setSearchHistory] = useState<HistoryItem[]>([]);
   const [markerSortOrder, setMarkerSortOrder] = useState<'default' | 'mutation_rate'>('mutation_rate');
 
-  const { execute: executeMatching } = useWorker<WorkerParams, WorkerResponse>((progress) => {
-    setProgress(progress * 100);
+  const { execute: executeMatching } = useWorker<WorkerParams, WorkerResponse>({
+    onProgress: (progress) => {
+      setProgress(progress);
+    }
   });
 
   useEffect(() => {
