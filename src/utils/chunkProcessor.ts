@@ -1,9 +1,10 @@
 import { STRProfile } from '@/utils/constants';
+import { DatabaseManager } from './storage/indexedDB';
 
 const CHUNK_READ_SIZE = 256 * 1024; // 256KB чтение
 const BATCH_SIZE = 25; // 25 профилей за раз
 
-async function* readFileInChunks(file: File): AsyncGenerator<string> {
+const readFileInChunks = async function* (file: File): AsyncGenerator<string> {
   let position = 0;
   let readHeader = false;
   const decoder = new TextDecoder();
@@ -22,7 +23,7 @@ async function* readFileInChunks(file: File): AsyncGenerator<string> {
     }
     
     position += CHUNK_READ_SIZE;
-    await new Promise(resolve => setTimeout(resolve, 10)); // Prevent memory buildup
+    await new Promise(resolve => setTimeout(resolve, 10));
   }
 }
 
@@ -31,22 +32,19 @@ export async function processLargeFile(
   onProgress: (progress: number) => void,
   dbManager: DatabaseManager
 ): Promise<STRProfile[]> {
-  const CHUNK_SIZE = 50 * 1024; // 50KB chunks
+  const CHUNK_SIZE = 50 * 1024;
   const profiles: STRProfile[] = [];
   let offset = 0;
   let header: string[] = [];
-  let processedKits = new Set<string>();
+  const processedKits = new Set<string>();
 
   try {
-    console.log(`Читаем первую часть файла (заголовки)`); // Лог заголовков
     const firstChunk = await readChunk(file, 0, CHUNK_SIZE);
     const firstLines = firstChunk.split('\n');
     header = firstLines[0].split(',').map(h => h.trim());
-    console.log(`Заголовки:`, header); // Печатаем заголовки
     offset = firstChunk.indexOf('\n') + 1;
 
     while (offset < file.size) {
-      console.log(`Читаем чанк с позиции ${offset}`); // Лог текущего чанка
       const chunk = await readChunk(file, offset, CHUNK_SIZE);
       const lines = chunk.split('\n');
       
@@ -77,7 +75,6 @@ export async function processLargeFile(
         profiles.push(profile);
 
         if (profiles.length % 100 === 0) {
-          console.log(`Сохраняем 100 профилей в IndexedDB...`);
           await dbManager.saveProfiles(profiles.splice(0, 100));
           await new Promise(r => setTimeout(r, 10));
         }
@@ -85,25 +82,20 @@ export async function processLargeFile(
 
       offset += CHUNK_SIZE;
       onProgress((offset / file.size) * 100);
-      console.log(`Прогресс загрузки: ${((offset / file.size) * 100).toFixed(2)}%`);
 
       await new Promise(r => setTimeout(r, 10));
     }
 
-    if (profiles.length % 100 === 0) {
-      console.log(`Перед сохранением: количество профилей ${profiles.length}`); // Лог
-      await dbManager.saveProfiles(profiles.splice(0, 100)); // Сохранение данных в IndexedDB
-      await new Promise(r => setTimeout(r, 10));
+    if (profiles.length > 0) {
+      await dbManager.saveProfiles(profiles);
     }    
 
-    console.log(`Загрузка завершена. Получение всех профилей из IndexedDB...`);
     return await dbManager.getProfiles();
   } catch (error) {
     console.error('Ошибка обработки файла:', error);
     throw error;
   }
 }
-
 
 async function readChunk(file: File, offset: number, size: number): Promise<string> {
   const chunk = file.slice(offset, offset + size);

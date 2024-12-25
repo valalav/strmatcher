@@ -1,8 +1,6 @@
 import { STRProfile, MarkerCount } from '../utils/constants';
 import { calculateGeneticDistance } from '../utils/calculations';
 
-declare const self: DedicatedWorkerGlobalScope;
-
 interface WorkerMessage {
   query: STRProfile;
   database: STRProfile[];
@@ -15,7 +13,7 @@ self.onmessage = function(e: MessageEvent<WorkerMessage>) {
   const { query, database, markerCount, maxDistance, maxMatches } = e.data;
   
   const queryMarkers = Object.entries(query.markers)
-    .filter(([_, value]) => value?.trim())
+    .filter(([, value]) => value?.trim())
     .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
 
   const results = database
@@ -23,24 +21,14 @@ self.onmessage = function(e: MessageEvent<WorkerMessage>) {
       if (profile.kitNumber === query.kitNumber) return null;
 
       const profileMarkers = Object.entries(profile.markers)
-        .filter(([key, value]) => key in queryMarkers && value?.trim())
+        .filter(([key]) => key in queryMarkers && profile.markers[key]?.trim())
         .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
 
       const comparedMarkers = Object.keys(profileMarkers).length;
+      if (comparedMarkers < Object.keys(queryMarkers).length) return null;
 
-      if (comparedMarkers < Object.keys(queryMarkers).length) {
-        return null;
-      }
-
-      const result = calculateGeneticDistance(
-        queryMarkers,
-        profileMarkers,
-        markerCount
-      );
-
-      if (!result.hasAllRequiredMarkers || result.distance > maxDistance) {
-        return null;
-      }
+      const result = calculateGeneticDistance(queryMarkers, profileMarkers, markerCount);
+      if (!result.hasAllRequiredMarkers || result.distance > maxDistance) return null;
 
       return {
         profile,

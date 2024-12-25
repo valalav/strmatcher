@@ -2,10 +2,9 @@ import { markers, palindromes } from './constants';
 import Papa from 'papaparse';
 import type { STRProfile } from './constants';
 
-// Кэш для оптимизации очистки значений
 const valueCache = new Map<string, string>();
 
-export function cleanValue(value: any): string {
+export function cleanValue(value: string | number | null | undefined): string {
   if (!value) return '';
   
   const key = String(value);
@@ -24,7 +23,6 @@ export function cleanValue(value: any): string {
   return cleaned;
 }
 
-// Обработка палиндромных маркеров
 function processPalindromicMarker(value: string, marker: string): string {
   if (!(marker in palindromes)) return value;
 
@@ -39,7 +37,6 @@ function processPalindromicMarker(value: string, marker: string): string {
     .join('-');
 }
 
-// Обработка CSV данных с поддержкой прогресса
 export function parseCSVData(text: string, onProgress?: (progress: number) => void): Promise<STRProfile[]> {
   return new Promise((resolve, reject) => {
     try {
@@ -57,12 +54,11 @@ export function parseCSVData(text: string, onProgress?: (progress: number) => vo
             .replace(/[^\x20-\x7E]/g, '')
             .replace(/\s+/g, ' ');
 
-          if (cleanHeader === 'KitNumber' || cleanHeader === 'Kit_Number') {
-            return 'Kit Number';
-          }
-          return cleanHeader;
+          return cleanHeader === 'KitNumber' || cleanHeader === 'Kit_Number' 
+            ? 'Kit Number' 
+            : cleanHeader;
         },
-        step: (results, parser) => {
+        step: (results) => {
           try {
             if (results.data['Kit Number']) {
               const cleanString = (value: string | undefined) =>
@@ -76,7 +72,6 @@ export function parseCSVData(text: string, onProgress?: (progress: number) => vo
                 markers: {}
               };
 
-              // Обработка маркеров
               let hasMarkers = false;
               markers.forEach(marker => {
                 if (results.data[marker]) {
@@ -98,7 +93,6 @@ export function parseCSVData(text: string, onProgress?: (progress: number) => vo
             if (onProgress) {
               onProgress((currentLine / lines) * 100);
             }
-
           } catch (error) {
             console.warn('Error processing row:', error);
           }
@@ -120,7 +114,6 @@ export function parseCSVData(text: string, onProgress?: (progress: number) => vo
   });
 }
 
-// Создание поискового индекса
 export class ProfileIndex {
   private index: Map<string, Map<string, Set<string>>> = new Map();
 
@@ -154,9 +147,8 @@ export class ProfileIndex {
   }
 }
 
-// Кэширование результатов
-const resultCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 минут
+const resultCache = new Map<string, { data: unknown; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000;
 
 export function getCachedResult<T>(key: string, compute: () => T): T {
   const cached = resultCache.get(key);

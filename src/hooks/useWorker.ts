@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-interface WorkerMessage {
+interface WorkerMessage<T> {
   type: 'progress' | 'complete';
-  data: any;
+  data: T;
   progress?: number;
 }
 
@@ -19,16 +19,17 @@ export function useWorker<T, R>(onProgress?: (progress: number) => void) {
   }, []);
 
   const execute = useCallback((data: T): Promise<R> => {
+    if (!workerRef.current) {
+      throw new Error('Worker not initialized');
+    }
+
+    setLoading(true);
+    setError(null);
+
     return new Promise((resolve, reject) => {
-      if (!workerRef.current) {
-        reject(new Error('Worker not initialized'));
-        return;
-      }
+      if (!workerRef.current) return;
 
-      setLoading(true);
-      setError(null);
-
-      workerRef.current.onmessage = (e: MessageEvent<WorkerMessage>) => {
+      workerRef.current.onmessage = (e: MessageEvent<WorkerMessage<R>>) => {
         if (e.data.type === 'progress' && typeof e.data.progress === 'number') {
           onProgress?.(e.data.progress);
         } else if (e.data.type === 'complete') {

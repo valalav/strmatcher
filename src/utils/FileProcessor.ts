@@ -1,16 +1,22 @@
+import { DatabaseManager } from './storage/indexedDB';
+import { STRProfile } from './constants';
+
 export class FileProcessor {
   private static CHUNK_SIZE = 1024 * 1024; // 1MB
   private static BATCH_SIZE = 100;
 
-  static async processFile(file: File, onProgress: (progress: number) => void, dbManager: any): Promise<any[]> {
+  static async processFile(
+    file: File, 
+    onProgress: (progress: number) => void, 
+    dbManager: DatabaseManager
+  ): Promise<STRProfile[]> {
     const fileSize = file.size;
     let offset = 0;
     let header: string[] = [];
     let buffer = '';
-    const profiles: any[] = [];
+    const profiles: STRProfile[] = [];
     const uniqueKits = new Set<string>();
 
-    // Читаем первый чанк для получения заголовка
     const firstChunkBlob = file.slice(0, this.CHUNK_SIZE);
     const firstChunkText = await this.readBlob(firstChunkBlob);
     const headerEnd = firstChunkText.indexOf('\n');
@@ -32,7 +38,7 @@ export class FileProcessor {
         if (!kitNumber || uniqueKits.has(kitNumber)) continue;
         uniqueKits.add(kitNumber);
 
-        const profile = {
+        const profile: STRProfile = {
           kitNumber,
           name: values[1]?.trim() || '',
           country: values[2]?.trim() || '',
