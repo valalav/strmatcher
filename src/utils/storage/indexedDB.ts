@@ -58,9 +58,8 @@ class DatabaseManager {
   // Получение всех профилей из базы данных
   async getProfiles(): Promise<STRProfile[]> {
     if (!this.db) throw new Error('Database not initialized');
-
     return new Promise<STRProfile[]>((resolve, reject) => {
-      const tx = this.db.transaction('profiles', 'readonly');
+      const tx = this.db!.transaction('profiles', 'readonly');
       const store = tx.objectStore('profiles');
       const request = store.getAll();
 
