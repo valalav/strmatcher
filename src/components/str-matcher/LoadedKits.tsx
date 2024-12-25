@@ -13,17 +13,17 @@ const LoadedKits: React.FC<LoadedKitsProps> = ({ profiles, onKitNumberClick }) =
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredProfiles = profiles
-  .filter(profile => {
-    if (!searchTerm) return true;
-    if (!profile || !profile.kitNumber) return false;
-    
-    const searchLower = searchTerm.toLowerCase();
-    const kitNumber = profile.kitNumber.toLowerCase();
-    const name = profile.name?.toLowerCase() || '';
-    
-    return kitNumber.includes(searchLower) || name.includes(searchLower);
-  })
-  .slice(0, 1000);
+    .filter(profile => {
+      if (!searchTerm) return true;
+      if (!profile || !profile.kitNumber) return false;
+      
+      const searchLower = searchTerm.toLowerCase();
+      const kitNumber = profile.kitNumber.toLowerCase();
+      const name = profile.name?.toLowerCase() || '';
+      
+      return kitNumber.includes(searchLower) || name.includes(searchLower);
+    })
+    .slice(0, 1000);
 
   return (
     <Card className="h-screen">
@@ -39,13 +39,12 @@ const LoadedKits: React.FC<LoadedKitsProps> = ({ profiles, onKitNumberClick }) =
       </CardHeader>
       <CardContent>
         <div className="overflow-y-auto h-[calc(100vh-180px)]">
-          {filteredProfiles.map((profile, index) => {
-            // Пропускаем профили без kitNumber
+          {filteredProfiles.map(profile => {
             if (!profile || !profile.kitNumber) return null;
             
             return (
               <div 
-                key={profile.kitNumber} // Используем только kitNumber как ключ
+                key={profile.kitNumber}
                 className="p-2 border-b hover:bg-gray-50 cursor-pointer"
                 onClick={() => onKitNumberClick(profile.kitNumber)}
               >
