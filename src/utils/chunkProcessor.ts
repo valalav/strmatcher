@@ -29,7 +29,7 @@ async function* readFileInChunks(file: File): AsyncGenerator<string> {
 export async function processLargeFile(
   file: File,
   onProgress: (progress: number) => void,
-  dbManager: any
+  dbManager: DatabaseManager
 ): Promise<STRProfile[]> {
   const CHUNK_SIZE = 50 * 1024; // 50KB chunks
   const profiles: STRProfile[] = [];
