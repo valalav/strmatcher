@@ -1,8 +1,9 @@
 import { STRProfile } from '@/utils/constants';
 import { DatabaseManager } from './storage/indexedDB';
 
-async function* readFileInChunks(file: File): AsyncGenerator<string> {
-  const CHUNK_READ_SIZE = 256 * 1024;
+const CHUNK_READ_SIZE = 256 * 1024; // 256KB чтение
+
+async function* readFileChunks(file: File): AsyncGenerator<string> {
   let position = 0;
   let readHeader = false;
   const decoder = new TextDecoder();
@@ -84,7 +85,6 @@ export async function processLargeFile(
 
       offset += CHUNK_SIZE;
       onProgress((offset / file.size) * 100);
-      console.log(`Loading progress: ${((offset / file.size) * 100).toFixed(2)}%`);
 
       await new Promise(r => setTimeout(r, 10));
     }
@@ -111,4 +111,4 @@ async function readChunk(file: File, offset: number, size: number): Promise<stri
   });
 }
 
-export { readFileInChunks };
+export { readFileChunks };

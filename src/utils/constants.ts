@@ -24,7 +24,6 @@ export const markers = [
 
 export const markerCountOptions = [12, 37, 67, 111] as const;
 
-// Группы маркеров для сравнения
 export const markerGroups = {
   12: markers.slice(0, 12),
   37: markers.slice(0, 37),
@@ -34,7 +33,6 @@ export const markerGroups = {
 
 export type MarkerCount = keyof typeof markerGroups;
 
-// Предопределенные значения Max Genetic Distance
 export const defaultMaxDistance: Record<MarkerCount, number> = {
   12: 5,
   37: 25,
@@ -42,7 +40,6 @@ export const defaultMaxDistance: Record<MarkerCount, number> = {
   111: 50
 };
 
-// Полиндромные маркеры и их кол-во значений
 export const palindromes = {
   "DYS385": 2,
   "DYS464": 4,
@@ -90,3 +87,11 @@ export interface Repository {
   type: 'google_sheet' | 'excel' | 'other';
   sheetName?: string;
 }
+
+export { 
+  markers, 
+  markerGroups, 
+  markerCountOptions,
+  defaultMaxDistance,
+  palindromes
+};

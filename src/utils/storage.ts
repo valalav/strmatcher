@@ -1,4 +1,4 @@
-export function saveToLocalStorage(key: string, data: unknown): boolean {
+export const saveToLocalStorage = <T>(key: string, data: T): boolean => {
   try {
     const serialized = JSON.stringify(data);
     localStorage.setItem(key, serialized);
@@ -7,9 +7,9 @@ export function saveToLocalStorage(key: string, data: unknown): boolean {
     console.error('Error saving to localStorage:', e);
     return false;
   }
-}
+};
 
-export function loadFromLocalStorage<T>(key: string): T | null {
+export const loadFromLocalStorage = <T>(key: string): T | null => {
   try {
     const serialized = localStorage.getItem(key);
     if (!serialized) return null;
@@ -18,4 +18,4 @@ export function loadFromLocalStorage<T>(key: string): T | null {
     console.error('Error loading from localStorage:', e);
     return null;
   }
-}
+};

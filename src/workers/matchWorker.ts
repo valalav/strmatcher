@@ -1,43 +1,85 @@
-import { STRProfile, MarkerCount } from '../utils/constants';
-import { calculateGeneticDistance } from '../utils/calculations';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { Repository } from '../utils/constants';
 
-interface WorkerMessage {
-  query: STRProfile;
-  database: STRProfile[];
-  markerCount: MarkerCount;
+export interface UserSettings {
+  defaultMarkerCount: number;
   maxDistance: number;
   maxMatches: number;
+  markerSortOrder: 'default' | 'mutation_rate';
+  selectedRepositories: string[];
+  customRepositories: Repository[];
+  tableSettings: {
+    pageSize: number;
+    visibleColumns: string[];
+  };
+  performance: {
+    useWorkers: boolean;
+    chunkSize: number;
+    cacheResults: boolean;
+  };
 }
 
-self.onmessage = function(e: MessageEvent<WorkerMessage>) {
-  const { query, database, markerCount, maxDistance, maxMatches } = e.data;
-  
-  const queryMarkers = Object.entries(query.markers)
-    .filter(([, value]) => value?.trim())
-    .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+export interface UserProfile {
+  id: string;
+  settings: UserSettings;
+  lastSyncTime?: Date;
+}
 
-  const results = database
-    .map(profile => {
-      if (profile.kitNumber === query.kitNumber) return null;
-
-      const profileMarkers = Object.entries(profile.markers)
-        .filter(([key]) => key in queryMarkers && profile.markers[key]?.trim())
-        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-
-      const comparedMarkers = Object.keys(profileMarkers).length;
-      if (comparedMarkers < Object.keys(queryMarkers).length) return null;
-
-      const result = calculateGeneticDistance(queryMarkers, profileMarkers, markerCount);
-      if (!result.hasAllRequiredMarkers || result.distance > maxDistance) return null;
-
-      return {
-        profile,
-        ...result,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.distance - b.distance)
-    .slice(0, maxMatches);
-
-  self.postMessage({ type: 'complete', data: results });
+const initialState: UserProfile = {
+  id: '',
+  settings: {
+    defaultMarkerCount: 37,
+    maxDistance: 25,
+    maxMatches: 200,
+    markerSortOrder: 'mutation_rate',
+    selectedRepositories: [],
+    customRepositories: [],
+    tableSettings: {
+      pageSize: 50,
+      visibleColumns: []
+    },
+    performance: {
+      useWorkers: true,
+      chunkSize: 1000,
+      cacheResults: true
+    }
+  }
 };
+
+const userProfileSlice = createSlice({
+  name: 'userProfile',
+  initialState,
+  reducers: {
+    setProfile: (state, action: PayloadAction<UserProfile>) => {
+      return { ...state, ...action.payload };
+    },
+    updateSettings: (state, action: PayloadAction<Partial<UserSettings>>) => {
+      state.settings = { ...state.settings, ...action.payload };
+    },
+    addCustomRepository: (state, action: PayloadAction<Repository>) => {
+      state.settings.customRepositories.push(action.payload);
+    },
+    removeCustomRepository: (state, action: PayloadAction<string>) => {
+      state.settings.customRepositories = state.settings.customRepositories
+        .filter(repo => repo.id !== action.payload);
+    },
+    setLastSyncTime: (state) => {
+      state.lastSyncTime = new Date();
+    },
+    resetProfile: () => initialState
+  }
+});
+
+export const selectUserProfile = (state: { userProfile: UserProfile }) => state.userProfile;
+export const selectUserSettings = (state: { userProfile: UserProfile }) => state.userProfile.settings;
+
+export const {
+  setProfile,
+  updateSettings,
+  addCustomRepository,
+  removeCustomRepository,
+  setLastSyncTime,
+  resetProfile
+} = userProfileSlice.actions;
+
+export default userProfileSlice.reducer;

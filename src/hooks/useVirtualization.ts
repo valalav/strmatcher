@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 
-interface VirtualItem<T> {
+export interface VirtualItem<T> {
   index: number;
   start: number;
   size: number;

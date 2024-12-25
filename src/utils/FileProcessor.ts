@@ -1,6 +1,11 @@
 import { DatabaseManager } from './storage/indexedDB';
 import { STRProfile } from './constants';
 
+interface ChunkResult {
+  profiles: STRProfile[];
+  processedCount: number;
+}
+
 export class FileProcessor {
   private static CHUNK_SIZE = 1024 * 1024; // 1MB
   private static BATCH_SIZE = 100;
@@ -17,7 +22,6 @@ export class FileProcessor {
     const profiles: STRProfile[] = [];
     const uniqueKits = new Set<string>();
 
-    // Читаем первый чанк для получения заголовка
     const firstChunkBlob = file.slice(0, this.CHUNK_SIZE);
     const firstChunkText = await this.readBlob(firstChunkBlob);
     const headerEnd = firstChunkText.indexOf('\n');
@@ -32,34 +36,13 @@ export class FileProcessor {
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
-      for (const line of lines) {
-        const values = line.split(',');
-        const kitNumber = values[0]?.trim();
+      const result = this.processChunkLines(lines, header, uniqueKits);
+      profiles.push(...result.profiles);
 
-        if (!kitNumber || uniqueKits.has(kitNumber)) continue;
-        uniqueKits.add(kitNumber);
-
-        const profile: STRProfile = {
-          kitNumber,
-          name: values[1]?.trim() || '',
-          country: values[2]?.trim() || '',
-          haplogroup: values[3]?.trim() || '',
-          markers: {}
-        };
-
-        for (let i = 4; i < values.length && i < header.length; i++) {
-          if (values[i]?.trim()) {
-            profile.markers[header[i]] = values[i].trim();
-          }
-        }
-
-        profiles.push(profile);
-
-        if (profiles.length >= this.BATCH_SIZE) {
-          await dbManager.saveProfiles(profiles.splice(0));
-          onProgress((offset / fileSize) * 100);
-          await new Promise(r => setTimeout(r, 50));
-        }
+      if (profiles.length >= this.BATCH_SIZE) {
+        await dbManager.saveProfiles(profiles.splice(0));
+        onProgress((offset / fileSize) * 100);
+        await new Promise(r => setTimeout(r, 50));
       }
 
       offset += this.CHUNK_SIZE;
@@ -70,6 +53,43 @@ export class FileProcessor {
     }
 
     return dbManager.getProfiles();
+  }
+
+  private static processChunkLines(
+    lines: string[], 
+    header: string[], 
+    uniqueKits: Set<string>
+  ): ChunkResult {
+    const profiles: STRProfile[] = [];
+
+    for (const line of lines) {
+      const values = line.split(',');
+      const kitNumber = values[0]?.trim();
+
+      if (!kitNumber || uniqueKits.has(kitNumber)) continue;
+      uniqueKits.add(kitNumber);
+
+      const profile: STRProfile = {
+        kitNumber,
+        name: values[1]?.trim() || '',
+        country: values[2]?.trim() || '',
+        haplogroup: values[3]?.trim() || '',
+        markers: {}
+      };
+
+      for (let i = 4; i < values.length && i < header.length; i++) {
+        if (values[i]?.trim()) {
+          profile.markers[header[i]] = values[i].trim();
+        }
+      }
+
+      profiles.push(profile);
+    }
+
+    return {
+      profiles,
+      processedCount: lines.length
+    };
   }
 
   private static readBlob(blob: Blob): Promise<string> {
