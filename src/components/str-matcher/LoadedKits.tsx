@@ -13,17 +13,17 @@ const LoadedKits: React.FC<LoadedKitsProps> = ({ profiles, onKitNumberClick }) =
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredProfiles = profiles
-    .filter(profile => {
-      if (!searchTerm) return true;
-      if (!profile || !profile.kitNumber) return false;
-      
-      const searchLower = searchTerm.toLowerCase();
-      const kitNumber = profile.kitNumber.toLowerCase();
-      const name = profile.name?.toLowerCase() || '';
-      
-      return kitNumber.includes(searchLower) || name.includes(searchLower);
-    })
-    .slice(0, 1000); // Ограничиваем количество отображаемых результатов
+  .filter(profile => {
+    if (!searchTerm) return true;
+    if (!profile || !profile.kitNumber) return false;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const kitNumber = profile.kitNumber.toLowerCase();
+    const name = profile.name?.toLowerCase() || '';
+    
+    return kitNumber.includes(searchLower) || name.includes(searchLower);
+  })
+  .slice(0, 1000);
 
   return (
     <Card className="h-screen">
