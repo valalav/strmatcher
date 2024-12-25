@@ -3,6 +3,7 @@ import { DatabaseManager } from './storage/indexedDB';
 
 const CHUNK_READ_SIZE = 256 * 1024; // 256KB чтение
 
+// Генератор для чтения больших файлов по частям
 async function* readFileChunks(file: File): AsyncGenerator<string> {
   let position = 0;
   let readHeader = false;
@@ -22,10 +23,11 @@ async function* readFileChunks(file: File): AsyncGenerator<string> {
     }
     
     position += CHUNK_READ_SIZE;
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise(resolve => setTimeout(resolve, 10)); // Искусственная пауза
   }
 }
 
+// Обработка большого файла
 export async function processLargeFile(
   file: File,
   onProgress: (progress: number) => void,
@@ -38,6 +40,7 @@ export async function processLargeFile(
   const processedKits = new Set<string>();
 
   try {
+    // Чтение заголовков
     console.log(`Reading first part (headers)`);
     const firstChunk = await readChunk(file, 0, CHUNK_SIZE);
     const firstLines = firstChunk.split('\n');
@@ -45,6 +48,7 @@ export async function processLargeFile(
     console.log(`Headers:`, header);
     offset = firstChunk.indexOf('\n') + 1;
 
+    // Чтение оставшихся данных файла
     while (offset < file.size) {
       console.log(`Reading chunk at position ${offset}`);
       const chunk = await readChunk(file, offset, CHUNK_SIZE);
@@ -68,6 +72,7 @@ export async function processLargeFile(
           markers: {}
         };
 
+        // Заполнение маркеров
         for (let i = 4; i < values.length && i < header.length; i++) {
           if (values[i]?.trim()) {
             profile.markers[header[i]] = values[i].trim();
@@ -76,6 +81,7 @@ export async function processLargeFile(
 
         profiles.push(profile);
 
+        // Сохранение каждые 100 профилей
         if (profiles.length % 100 === 0) {
           console.log(`Saving 100 profiles to IndexedDB...`);
           await dbManager.saveProfiles(profiles.splice(0, 100));
@@ -89,6 +95,7 @@ export async function processLargeFile(
       await new Promise(r => setTimeout(r, 10));
     }
 
+    // Сохранение оставшихся профилей
     if (profiles.length > 0) {
       await dbManager.saveProfiles(profiles);
     }    
@@ -101,6 +108,7 @@ export async function processLargeFile(
   }
 }
 
+// Чтение части файла
 async function readChunk(file: File, offset: number, size: number): Promise<string> {
   const chunk = file.slice(offset, offset + size);
   return new Promise((resolve, reject) => {

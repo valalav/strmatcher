@@ -1,11 +1,13 @@
 ﻿import { markerGroups, palindromes } from './constants';
 import type { STRMatch, MarkerCount } from './constants';
 
+// Нормализация значения маркера
 export function normalizeMarkerValue(value: string | number): number {
   if (typeof value === 'undefined' || value === null || value === '') return NaN;
   return parseInt(String(value).trim());
 }
 
+// Подсчет разницы между значениями маркеров
 export function calculateMarkerDifference(value1: string, value2: string, marker: string): number {
   const isPalindromic = marker in palindromes;
 
@@ -39,7 +41,7 @@ export interface GeneticDistanceResult {
   hasAllRequiredMarkers: boolean;
 }
 
-// Функция для подсчета реально доступных маркеров в заданном диапазоне
+// Подсчет количества доступных маркеров
 function countAvailableMarkers(profile: Record<string, string>, range: string[]): number {
   let count = 0;
   for (const marker of range) {
@@ -54,6 +56,7 @@ function countAvailableMarkers(profile: Record<string, string>, range: string[])
   return count;
 }
 
+// Подсчет генетической дистанции
 export function calculateGeneticDistance(
   profile1: Record<string, string>,
   profile2: Record<string, string>, 
@@ -63,7 +66,6 @@ export function calculateGeneticDistance(
   let totalDistance = 0;
   let identicalCount = 0;
 
-  // Считаем только маркеры в пределах выбранного диапазона
   const maxIndex = {
     12: markersToCompare.indexOf('DYS389ii'),
     37: markersToCompare.indexOf('DYS438'),
@@ -82,13 +84,11 @@ export function calculateGeneticDistance(
     const diff = calculateMarkerDifference(value1, value2, marker);
     if (isNaN(diff)) continue;
 
-    // Учитываем маркер в общем количестве
     comparedCount++;
     totalDistance += diff;
     if (diff === 0) identicalCount++;
   }
 
-  // Минимальные требования по количеству маркеров
   const minRequired = {
     12: 10,
     37: 25,
@@ -110,6 +110,7 @@ export interface MarkerRarityResult {
   rarityStyle: React.CSSProperties | null;
 }
 
+// Подсчет редкости маркера
 export function calculateMarkerRarity(
   matches: STRMatch[],
   marker: string,

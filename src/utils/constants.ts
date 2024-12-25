@@ -1,10 +1,11 @@
+// Маркеры STR
 export const markers = [
-  "DYS393", "DYS390", "DYS19", "DYS391", "DYS385", 
-  "DYS426", "DYS388", "DYS439", "DYS389i", "DYS392", 
-  "DYS389ii", "DYS458", "DYS459", "DYS455", "DYS454", 
+  "DYS393", "DYS390", "DYS19", "DYS391", "DYS385",
+  "DYS426", "DYS388", "DYS439", "DYS389i", "DYS392",
+  "DYS389ii", "DYS458", "DYS459", "DYS455", "DYS454",
   "DYS447", "DYS437", "DYS448", "DYS449", "DYS464",
   "DYS460", "Y-GATA-H4", "YCAII", "DYS456", "DYS607",
-  "DYS576", "DYS570", "CDY", "DYS442", "DYS438", 
+  "DYS576", "DYS570", "CDY", "DYS442", "DYS438",
   "DYS531", "DYS578", "DYF395S1", "DYS590", "DYS537",
   "DYS641", "DYS472", "DYF406S1", "DYS511", "DYS425",
   "DYS413", "DYS557", "DYS594", "DYS436", "DYS490",
@@ -22,8 +23,10 @@ export const markers = [
   "DYS461", "DYS435"
 ];
 
+// Опции для количества маркеров
 export const markerCountOptions = [12, 37, 67, 111] as const;
 
+// Группы маркеров
 export const markerGroups = {
   12: markers.slice(0, 12),
   37: markers.slice(0, 37),
@@ -31,8 +34,10 @@ export const markerGroups = {
   111: markers
 } as const;
 
+// Типы количества маркеров
 export type MarkerCount = keyof typeof markerGroups;
 
+// Максимальное расстояние по умолчанию
 export const defaultMaxDistance: Record<MarkerCount, number> = {
   12: 5,
   37: 25,
@@ -40,6 +45,7 @@ export const defaultMaxDistance: Record<MarkerCount, number> = {
   111: 50
 };
 
+// Палиндромные маркеры
 export const palindromes = {
   "DYS385": 2,
   "DYS464": 4,
@@ -50,13 +56,16 @@ export const palindromes = {
   "DYS413": 2
 } as const;
 
+// Порядок сортировки маркеров
 export type MarkerSortOrder = 'default' | 'mutation_rate';
 
+// Опции для сортировки маркеров
 export interface MarkerSortOption {
   value: MarkerSortOrder;
   label: string;
 }
 
+// Интерфейс профиля STR
 export interface STRProfile {
   kitNumber: string;
   name?: string;
@@ -65,6 +74,7 @@ export interface STRProfile {
   markers: Record<string, string>;
 }
 
+// Интерфейс совпадения STR
 export interface STRMatch {
   profile: STRProfile;
   distance: number;
@@ -74,10 +84,12 @@ export interface STRMatch {
   hasAllRequiredMarkers: boolean;
 }
 
+// История поиска
 export interface HistoryItem extends STRProfile {
   timestamp: Date;
 }
 
+// Интерфейс репозитория
 export interface Repository {
   id: string;
   name: string;
@@ -88,9 +100,10 @@ export interface Repository {
   sheetName?: string;
 }
 
-export { 
-  markers, 
-  markerGroups, 
+// Экспорт всех сущностей
+export {
+  markers,
+  markerGroups,
   markerCountOptions,
   defaultMaxDistance,
   palindromes

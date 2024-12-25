@@ -123,22 +123,23 @@ const stabilityOrder: Record<string, number> = {
 
 // Получение порядка стабильности для маркера
 function getMarkerStability(marker: string): number {
-  return stabilityOrder[marker] || 999;
+  return stabilityOrder[marker] || 999; // Маркеры без стабильности получают высокий номер
 }
 
 // Функция для получения маркеров в нужном порядке
 export function getOrderedMarkers(order: 'default' | 'mutation_rate'): string[] {
   if (order === 'default') {
-    return markers;
+    return markers; // Возвращаем стандартный порядок маркеров
   }
   
   return [...markers].sort((a, b) => {
     const orderA = getMarkerStability(a);
     const orderB = getMarkerStability(b);
-    return orderA - orderB;
+    return orderA - orderB; // Сортировка по стабильности
   });
 }
 
+// Опции сортировки для отображения
 export const sortOptions = [
   { value: 'default', label: 'Стандартный порядок FTDNA' },
   { value: 'mutation_rate', label: 'По скорости мутации' }

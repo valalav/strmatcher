@@ -4,6 +4,7 @@ import type { STRProfile } from './constants';
 
 const valueCache = new Map<string, string>();
 
+// Очистка значения от лишних символов
 export function cleanValue(value: string | number | null | undefined): string {
   if (!value) return '';
   
@@ -23,6 +24,7 @@ export function cleanValue(value: string | number | null | undefined): string {
   return cleaned;
 }
 
+// Обработка палиндромных маркеров
 function processPalindromicMarker(value: string, marker: string): string {
   if (!(marker in palindromes)) return value;
 
@@ -37,7 +39,11 @@ function processPalindromicMarker(value: string, marker: string): string {
     .join('-');
 }
 
-export function parseCSVData(text: string, onProgress?: (progress: number) => void): Promise<STRProfile[]> {
+// Парсинг CSV данных
+export function parseCSVData(
+  text: string,
+  onProgress?: (progress: number) => void
+): Promise<STRProfile[]> {
   return new Promise((resolve, reject) => {
     try {
       const lines = text.split('\n').length;
@@ -54,8 +60,8 @@ export function parseCSVData(text: string, onProgress?: (progress: number) => vo
             .replace(/[^\x20-\x7E]/g, '')
             .replace(/\s+/g, ' ');
 
-          return cleanHeader === 'KitNumber' || cleanHeader === 'Kit_Number' 
-            ? 'Kit Number' 
+          return cleanHeader === 'KitNumber' || cleanHeader === 'Kit_Number'
+            ? 'Kit Number'
             : cleanHeader;
         },
         step: (results) => {
@@ -69,11 +75,11 @@ export function parseCSVData(text: string, onProgress?: (progress: number) => vo
                 name: cleanString(results.data['Name']),
                 country: cleanString(results.data['Country']),
                 haplogroup: cleanString(results.data['Haplogroup']),
-                markers: {}
+                markers: {},
               };
 
               let hasMarkers = false;
-              markers.forEach(marker => {
+              markers.forEach((marker) => {
                 if (results.data[marker]) {
                   const value = results.data[marker];
                   profile.markers[marker] = processPalindromicMarker(
@@ -106,7 +112,7 @@ export function parseCSVData(text: string, onProgress?: (progress: number) => vo
         },
         error: (error) => {
           reject(new Error(`CSV parsing failed: ${error.message}`));
-        }
+        },
       });
     } catch (error) {
       reject(error);
@@ -114,6 +120,7 @@ export function parseCSVData(text: string, onProgress?: (progress: number) => vo
   });
 }
 
+// Класс для работы с индексами профилей
 export class ProfileIndex {
   private index: Map<string, Map<string, Set<string>>> = new Map();
 
@@ -122,7 +129,7 @@ export class ProfileIndex {
   }
 
   private buildIndex(profiles: STRProfile[]) {
-    profiles.forEach(profile => {
+    profiles.forEach((profile) => {
       Object.entries(profile.markers).forEach(([marker, value]) => {
         if (!this.index.has(marker)) {
           this.index.set(marker, new Map());
@@ -147,6 +154,7 @@ export class ProfileIndex {
   }
 }
 
+// Кэширование результатов
 const resultCache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
 
@@ -161,6 +169,7 @@ export function getCachedResult<T>(key: string, compute: () => T): T {
   return result;
 }
 
+// Очистка кэша
 export function clearCache() {
   valueCache.clear();
   resultCache.clear();

@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { Repository } from '../utils/constants';
+import type { RootState } from '../store'; // Убедитесь, что у вас есть `RootState` в проекте
 
 interface UserSettings {
   markerCount: number;
@@ -53,10 +54,14 @@ const userSlice = createSlice({
   }
 });
 
+// Селекторы
+export const selectUserSettings = (state: RootState) => state.user.settings;
+export const addCustomRepository = userSlice.actions.addRepository;
+
+// Экспорт экшенов и редюсера
 export const { 
   setUser, 
   updateSettings, 
-  addRepository, 
   removeRepository, 
   logout 
 } = userSlice.actions;
