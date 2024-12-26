@@ -245,76 +245,7 @@ const STRMatcher: React.FC = () => {
     <div className="p-4 max-w-[1800px] mx-auto">
       <div className="flex gap-4">
         <div className="w-64 flex-none flex flex-col gap-4">
-          <Card className="h-screen">
-            <CardHeader>
-              <CardTitle>Loaded Kits ({database.length})</CardTitle>
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Search by Kit Number..."
-                  className="w-full p-2 border rounded"
-                  value={filters.kitNumber}
-                  onChange={(e) => setFilters(prev => ({...prev, kitNumber: e.target.value}))}
-                />
-                <input
-                  type="text"
-                  placeholder="Search by Name..."
-                  className="w-full p-2 border rounded"
-                  value={filters.name}
-                  onChange={(e) => setFilters(prev => ({...prev, name: e.target.value}))}
-                />
-                <input
-                  type="text"
-                  placeholder="Search by Haplogroup..."
-                  className="w-full p-2 border rounded"
-                  value={filters.haplogroup}
-                  onChange={(e) => setFilters(prev => ({...prev, haplogroup: e.target.value}))}
-                />
-                <input
-                  type="text"
-                  placeholder="Search by Country..."
-                  className="w-full p-2 border rounded"
-                  value={filters.country}
-                  onChange={(e) => setFilters(prev => ({...prev, country: e.target.value}))}
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-            <div className="overflow-y-auto h-[calc(100vh-320px)]">
-              {getFilteredProfiles().map(profile => (
-                <div 
-                  key={profile.kitNumber}
-                  className="flex flex-col p-3 border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => populateFromKitNumber(profile.kitNumber)}
-                >
-                  <div className="flex items-baseline gap-2">
-                    <div className="text-blue-500 hover:text-blue-700 font-medium">
-                      {profile.kitNumber}
-                    </div>
-                    {profile.name && (
-                      <div className="text-sm text-gray-600">
-                        {profile.name}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-1 mt-1">
-                    {profile.country && (
-                      <div className="text-sm">
-                        <span className="text-gray-500">Region:</span> {profile.country}
-                      </div>
-                    )}
-                    {profile.haplogroup && (
-                      <div className="text-sm">
-                        <span className="text-gray-500">Haplogroup:</span> {profile.haplogroup}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-            </CardContent>
-          </Card>
+          <LoadedKits onKitNumberClick={populateFromKitNumber} />
           {searchHistory.length > 0 && (
             <SearchHistory 
               history={searchHistory}

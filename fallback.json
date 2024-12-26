@@ -1,0 +1,14 @@
+[
+  {
+    "kitNumber": "KIT123",
+    "name": "Sample Profile 1",
+    "haplogroup": "R1b",
+    "country": "USA"
+  },
+  {
+    "kitNumber": "KIT456",
+    "name": "Sample Profile 2",
+    "haplogroup": "I1",
+    "country": "Germany"
+  }
+]
