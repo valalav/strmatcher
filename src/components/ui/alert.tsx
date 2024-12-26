@@ -4,15 +4,12 @@ import * as React from "react";
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: "default" | "destructive";
-  className?: string;
 }
 
-export interface AlertDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {
-  className?: string;
-}
+export interface AlertDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
 
 export const Alert = React.forwardRef<HTMLDivElement, AlertProps>((props, ref) => {
-  const { variant = "default", className = "", ...other } = props;
+  const { className, variant = "default", ...other } = props;
   return (
     <div
       ref={ref}
@@ -21,22 +18,23 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>((props, ref) =
         variant === "destructive" 
           ? "border-destructive/50 text-destructive dark:border-destructive"
           : "bg-background text-foreground"
-      } ${className}`}
+      }`}
       {...other}
     />
   );
 });
-
 Alert.displayName = "Alert";
 
 export const AlertDescription = React.forwardRef<HTMLParagraphElement, AlertDescriptionProps>(
-  ({ className = "", ...props }, ref) => (
-    <div
-      ref={ref}
-      className={`text-sm [&_p]:leading-relaxed ${className}`}
-      {...props}
-    />
-  )
+  (props, ref) => {
+    const { className, ...other } = props;
+    return (
+      <div
+        ref={ref}
+        className="text-sm [&_p]:leading-relaxed"
+        {...other}
+      />
+    );
+  }
 );
-
 AlertDescription.displayName = "AlertDescription";

@@ -1,10 +1,9 @@
 import { STRProfile } from '@/utils/constants';
-import { DatabaseManager } from './storage/indexedDB';
 
 const CHUNK_READ_SIZE = 256 * 1024; // 256KB чтение
+const BATCH_SIZE = 25; // 25 профилей за раз
 
-// Генератор для чтения больших файлов по частям
-async function* readFileChunks(file: File): AsyncGenerator<string> {
+async function* readFileInChunks(file: File): AsyncGenerator<string> {
   let position = 0;
   let readHeader = false;
   const decoder = new TextDecoder();
@@ -23,34 +22,31 @@ async function* readFileChunks(file: File): AsyncGenerator<string> {
     }
     
     position += CHUNK_READ_SIZE;
-    await new Promise(resolve => setTimeout(resolve, 10)); // Искусственная пауза
+    await new Promise(resolve => setTimeout(resolve, 10)); // Prevent memory buildup
   }
 }
 
-// Обработка большого файла
 export async function processLargeFile(
   file: File,
   onProgress: (progress: number) => void,
-  dbManager: DatabaseManager
+  dbManager: any
 ): Promise<STRProfile[]> {
-  const CHUNK_SIZE = 50 * 1024;
+  const CHUNK_SIZE = 50 * 1024; // 50KB chunks
   const profiles: STRProfile[] = [];
   let offset = 0;
   let header: string[] = [];
-  const processedKits = new Set<string>();
+  let processedKits = new Set<string>();
 
   try {
-    // Чтение заголовков
-    console.log(`Reading first part (headers)`);
+    console.log(`Читаем первую часть файла (заголовки)`); // Лог заголовков
     const firstChunk = await readChunk(file, 0, CHUNK_SIZE);
     const firstLines = firstChunk.split('\n');
     header = firstLines[0].split(',').map(h => h.trim());
-    console.log(`Headers:`, header);
+    console.log(`Заголовки:`, header); // Печатаем заголовки
     offset = firstChunk.indexOf('\n') + 1;
 
-    // Чтение оставшихся данных файла
     while (offset < file.size) {
-      console.log(`Reading chunk at position ${offset}`);
+      console.log(`Читаем чанк с позиции ${offset}`); // Лог текущего чанка
       const chunk = await readChunk(file, offset, CHUNK_SIZE);
       const lines = chunk.split('\n');
       
@@ -72,7 +68,6 @@ export async function processLargeFile(
           markers: {}
         };
 
-        // Заполнение маркеров
         for (let i = 4; i < values.length && i < header.length; i++) {
           if (values[i]?.trim()) {
             profile.markers[header[i]] = values[i].trim();
@@ -81,9 +76,8 @@ export async function processLargeFile(
 
         profiles.push(profile);
 
-        // Сохранение каждые 100 профилей
         if (profiles.length % 100 === 0) {
-          console.log(`Saving 100 profiles to IndexedDB...`);
+          console.log(`Сохраняем 100 профилей в IndexedDB...`);
           await dbManager.saveProfiles(profiles.splice(0, 100));
           await new Promise(r => setTimeout(r, 10));
         }
@@ -91,24 +85,26 @@ export async function processLargeFile(
 
       offset += CHUNK_SIZE;
       onProgress((offset / file.size) * 100);
+      console.log(`Прогресс загрузки: ${((offset / file.size) * 100).toFixed(2)}%`);
 
       await new Promise(r => setTimeout(r, 10));
     }
 
-    // Сохранение оставшихся профилей
-    if (profiles.length > 0) {
-      await dbManager.saveProfiles(profiles);
+    if (profiles.length % 100 === 0) {
+      console.log(`Перед сохранением: количество профилей ${profiles.length}`); // Лог
+      await dbManager.saveProfiles(profiles.splice(0, 100)); // Сохранение данных в IndexedDB
+      await new Promise(r => setTimeout(r, 10));
     }    
 
-    console.log(`Load complete. Getting all profiles from IndexedDB...`);
+    console.log(`Загрузка завершена. Получение всех профилей из IndexedDB...`);
     return await dbManager.getProfiles();
   } catch (error) {
-    console.error('Error processing file:', error);
+    console.error('Ошибка обработки файла:', error);
     throw error;
   }
 }
 
-// Чтение части файла
+
 async function readChunk(file: File, offset: number, size: number): Promise<string> {
   const chunk = file.slice(offset, offset + size);
   return new Promise((resolve, reject) => {
@@ -118,5 +114,3 @@ async function readChunk(file: File, offset: number, size: number): Promise<stri
     reader.readAsText(chunk);
   });
 }
-
-export { readFileChunks };

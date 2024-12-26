@@ -1,138 +1,150 @@
-import { STRProfile, STRMatch, MarkerCount } from '@/utils/constants';
-import { calculateGeneticDistance } from '@/utils/calculations';
+import { STRProfile, MarkerCount, markerGroups } from '../utils/constants';
+import { calculateGeneticDistance } from '../utils/calculations';
 
-export interface WorkerResponse {
-  type: 'progress' | 'complete' | 'error';
-  data?: STRMatch[];
-  progress?: number;
-  error?: string;
-}
+declare const self: Worker & typeof globalThis;
 
-interface WorkerParams {
+interface WorkerMessage {
   query: STRProfile;
   database: STRProfile[];
-  markerCount: MarkerCount; 
+  markerCount: MarkerCount;
   maxDistance: number;
   maxMatches: number;
 }
 
-const findMatches = (
-  query: STRProfile,
-  database: STRProfile[],
-  markerCount: MarkerCount,
-  maxDistance: number,
-  maxMatches: number
-): STRMatch[] => {
-  
-  console.log('Worker starting match search with params:', {
-    queryKit: query.kitNumber,
-    dbSize: database.length,
-    markers: markerCount,
-    maxDist: maxDistance,
-    maxMatches
+interface WorkerResult {
+  profile: STRProfile;
+  distance: number;
+  comparedMarkers: number;
+  identicalMarkers: number;
+  percentIdentical: number;
+  hasAllRequiredMarkers: boolean;
+}
+
+type WorkerResponse = {
+  type: 'complete';
+  data: WorkerResult[];
+} | {
+  type: 'progress';
+  progress: number;
+} | {
+  type: 'error';
+  error: string;
+};
+
+self.onmessage = function(e: MessageEvent<WorkerMessage>) {
+  console.log('Worker received message:', {
+    queryKit: e.data.query.kitNumber,
+    dbSize: e.data.database.length,
+    markerCount: e.data.markerCount
   });
 
-  if (!query?.markers || !database?.length || !markerCount) {
-    console.error('Invalid input params:', {
-      hasMarkers: !!query?.markers,
-      dbLength: database?.length,
-      markerCount
-    });
-    return [];
-  }
-
-  const matches: STRMatch[] = [];
-
+  const { query, database, markerCount, maxDistance, maxMatches } = e.data;
+  
   try {
+    const markersToCompare = markerGroups[markerCount];
+    const maxIndex = {
+      12: markersToCompare.indexOf('DYS389ii'),
+      37: markersToCompare.indexOf('DYS438'),
+      67: markersToCompare.indexOf('DYS492'),
+      111: markersToCompare.length - 1
+    }[markerCount];
+
+    console.log('Using markers range:', {
+      count: markerCount,
+      maxIndex,
+      markersSet: markersToCompare.slice(0, maxIndex + 1)
+    });
+
+    // Фильтруем маркеры запроса
+    const queryMarkers = Object.entries(query.markers)
+      .filter(([key, value]) => 
+        value?.trim() && 
+        markersToCompare.indexOf(key) <= maxIndex
+      )
+      .reduce<Record<string, string>>((acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      }, {});
+
+    console.log('Filtered query markers:', {
+      total: Object.keys(query.markers).length,
+      filtered: Object.keys(queryMarkers).length
+    });
+
     let processedCount = 0;
-    
-    database.forEach((profile) => {
-      processedCount++;
-      
-      if (processedCount % 100 === 0) {
-        console.log(`Processed ${processedCount}/${database.length} profiles`);
-      }
+    const totalProfiles = database.length;
 
-      if (!profile?.markers || profile.kitNumber === query.kitNumber) {
-        return;
-      }
+    const results = database
+      .map(profile => {
+        processedCount++;
+        if (processedCount % 100 === 0) {
+          self.postMessage({
+            type: 'progress',
+            progress: (processedCount / totalProfiles) * 100
+          });
+        }
 
-      const result = calculateGeneticDistance(query.markers, profile.markers, markerCount);
-      
-      console.log('Distance calculation:', {
-        kit: profile.kitNumber,
-        distance: result.distance,
-        compared: result.comparedMarkers,
-        identical: result.identicalMarkers
-      });
+        if (profile.kitNumber === query.kitNumber) return null;
 
-      if (result.distance <= maxDistance) {
-        const match: STRMatch = {
-          profile: {
-            kitNumber: profile.kitNumber,
-            name: profile.name || '',
-            country: profile.country || '',
-            haplogroup: profile.haplogroup || '',
-            markers: {...profile.markers}
-          },
+        // Фильтруем маркеры профиля
+        const profileMarkers = Object.entries(profile.markers)
+          .filter(([key, value]) => 
+            key in queryMarkers && 
+            value?.trim() &&
+            markersToCompare.indexOf(key) <= maxIndex
+          )
+          .reduce<Record<string, string>>((acc, [key, value]) => {
+            acc[key] = value;
+            return acc;
+          }, {});
+
+        const comparedMarkers = Object.keys(profileMarkers).length;
+
+        if (comparedMarkers < Object.keys(queryMarkers).length) {
+          return null;
+        }
+
+        const result = calculateGeneticDistance(
+          queryMarkers,
+          profileMarkers,
+          markerCount
+        );
+
+        if (!result.hasAllRequiredMarkers || result.distance > maxDistance) {
+          return null;
+        }
+
+        console.log('Match found:', {
+          kit: profile.kitNumber,
           distance: result.distance,
-          comparedMarkers: result.comparedMarkers,
-          identicalMarkers: result.identicalMarkers,
-          percentIdentical: result.percentIdentical,
-          hasAllRequiredMarkers: result.hasAllRequiredMarkers
-        };
-
-        console.log('Found match:', {
-          kit: match.profile.kitNumber,
-          distance: match.distance,
-          identical: match.identicalMarkers
+          compared: result.comparedMarkers,
+          identical: result.identicalMarkers
         });
 
-        matches.push(match);
-      }
-    });
-
-    const sortedMatches = matches
+        return {
+          profile: {
+            ...profile,
+            markers: profileMarkers
+          },
+          ...result
+        };
+      })
+      .filter((result): result is NonNullable<typeof result> => result !== null)
       .sort((a, b) => a.distance - b.distance)
       .slice(0, maxMatches);
 
-    console.log('Match search complete:', {
-      totalFound: matches.length,
-      afterSort: sortedMatches.length,
-      firstMatch: sortedMatches[0]?.profile.kitNumber,
-      lastMatch: sortedMatches[sortedMatches.length-1]?.profile.kitNumber
+    console.log('Search complete:', {
+      totalMatches: results.length,
+      firstMatch: results[0]?.profile.kitNumber,
+      lastMatch: results[results.length - 1]?.profile.kitNumber,
+      firstDistance: results[0]?.distance,
+      lastDistance: results[results.length - 1]?.distance
     });
 
-    return sortedMatches;
-
-  } catch (error) {
-    console.error('Error in findMatches:', error);
-    return [];
-  }
-};
-
-self.onmessage = (event: MessageEvent<WorkerParams>) => {
-  console.log('Worker received message:', {
-    queryKit: event.data.query.kitNumber,
-    dbSize: event.data.database.length
-  });
-
-  const { query, database, markerCount, maxDistance, maxMatches } = event.data;
-  
-  try {
-    const matches = findMatches(query, database, markerCount, maxDistance, maxMatches);
-
-    console.log('Preparing worker response:', {
-      matchCount: matches.length,
-      first: matches[0]?.profile.kitNumber
-    });
-
-    const response: WorkerResponse = {
+    self.postMessage({
       type: 'complete' as const,
-      data: matches
-    };
-
-    self.postMessage(response);
+      data: results
+    });
 
   } catch (error) {
     console.error('Worker error:', error);

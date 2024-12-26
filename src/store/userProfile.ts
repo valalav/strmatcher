@@ -1,27 +1,25 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { Repository } from '../utils/constants';
-
-export interface UserSettings {
-  defaultMarkerCount: number;
-  maxDistance: number;
-  maxMatches: number;
-  markerSortOrder: 'default' | 'mutation_rate';
-  selectedRepositories: string[];
-  customRepositories: Repository[];
-  tableSettings: {
-    pageSize: number;
-    visibleColumns: string[];
-  };
-  performance: {
-    useWorkers: boolean;
-    chunkSize: number;
-    cacheResults: boolean;
-  };
-}
+import type { Repository } from '@/utils/constants';
 
 export interface UserProfile {
   id: string;
-  settings: UserSettings;
+  settings: {
+    defaultMarkerCount: number;
+    maxDistance: number;
+    maxMatches: number;
+    markerSortOrder: 'default' | 'mutation_rate';
+    selectedRepositories: string[];
+    customRepositories: Repository[];
+    tableSettings: {
+      pageSize: number;
+      visibleColumns: string[];
+    };
+    performance: {
+      useWorkers: boolean;
+      chunkSize: number;
+      cacheResults: boolean;
+    };
+  };
   lastSyncTime?: Date;
 }
 
@@ -53,7 +51,7 @@ const userProfileSlice = createSlice({
     setProfile: (state, action: PayloadAction<UserProfile>) => {
       return { ...state, ...action.payload };
     },
-    updateSettings: (state, action: PayloadAction<Partial<UserSettings>>) => {
+    updateSettings: (state, action: PayloadAction<Partial<UserProfile['settings']>>) => {
       state.settings = { ...state.settings, ...action.payload };
     },
     addCustomRepository: (state, action: PayloadAction<Repository>) => {
@@ -70,9 +68,6 @@ const userProfileSlice = createSlice({
   }
 });
 
-export const selectUserProfile = (state: { userProfile: UserProfile }) => state.userProfile;
-export const selectUserSettings = (state: { userProfile: UserProfile }) => state.userProfile.settings;
-
 export const {
   setProfile,
   updateSettings,
@@ -81,5 +76,8 @@ export const {
   setLastSyncTime,
   resetProfile
 } = userProfileSlice.actions;
+
+export const selectUserProfile = (state: { userProfile: UserProfile }) => state.userProfile;
+export const selectUserSettings = (state: { userProfile: UserProfile }) => state.userProfile.settings;
 
 export default userProfileSlice.reducer;

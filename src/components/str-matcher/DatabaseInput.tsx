@@ -34,9 +34,9 @@ const DatabaseInput: React.FC<DatabaseInputProps> = ({
       onDataLoaded(results);
       onError(null);
       event.target.value = ''; // Очищаем поле после успешной загрузки
-    } catch (e: unknown) {
+    } catch (e: any) {
       console.error('Parse error:', e);
-      onError('Error parsing database: ' + (e instanceof Error ? e.message : String(e)));
+      onError('Error parsing database: ' + e.message);
     }
   };
 

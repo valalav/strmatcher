@@ -1,4 +1,4 @@
-export const saveToLocalStorage = <T>(key: string, data: T): boolean => {
+export const saveToLocalStorage = (key: string, data: any) => {
   try {
     const serialized = JSON.stringify(data);
     localStorage.setItem(key, serialized);
@@ -9,11 +9,11 @@ export const saveToLocalStorage = <T>(key: string, data: T): boolean => {
   }
 };
 
-export const loadFromLocalStorage = <T>(key: string): T | null => {
+export const loadFromLocalStorage = (key: string) => {
   try {
     const serialized = localStorage.getItem(key);
     if (!serialized) return null;
-    return JSON.parse(serialized) as T;
+    return JSON.parse(serialized);
   } catch (e) {
     console.error('Error loading from localStorage:', e);
     return null;

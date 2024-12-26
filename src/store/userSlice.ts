@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { Repository } from '../utils/constants';
-import type { RootState } from './store';
 
 interface UserSettings {
   markerCount: number;
@@ -29,7 +28,7 @@ const initialState: UserState = {
 };
 
 const userSlice = createSlice({
-  name: 'userProfile',
+  name: 'user',
   initialState,
   reducers: {
     setUser(state, action: PayloadAction<string>) {
@@ -54,16 +53,5 @@ const userSlice = createSlice({
   }
 });
 
-// Селекторы
-export const selectUserSettings = (state: RootState) => state.userProfile.settings;
-export const addCustomRepository = userSlice.actions.addRepository;
-
-// Экспорт экшенов и редюсера
-export const { 
-  setUser, 
-  updateSettings, 
-  removeRepository, 
-  logout 
-} = userSlice.actions;
-
+export const { setUser, updateSettings, addRepository, removeRepository, logout } = userSlice.actions;
 export default userSlice.reducer;

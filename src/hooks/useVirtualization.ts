@@ -1,23 +1,16 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 
-export interface VirtualItem<T> {
-  index: number;
-  start: number;
-  size: number;
-  item: T;
-}
-
-interface VirtualizationOptions<T> {
-  items: T[];
+interface VirtualizationOptions {
+  items: any[];
   rowHeight: number;
   overscan?: number;
 }
 
-export function useVirtualization<T>({ 
+export function useVirtualization({ 
   items, 
   rowHeight, 
   overscan = 3 
-}: VirtualizationOptions<T>) {
+}: VirtualizationOptions) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [height, setHeight] = useState(0);

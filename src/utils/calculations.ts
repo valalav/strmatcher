@@ -1,13 +1,11 @@
 ﻿import { markerGroups, palindromes } from './constants';
 import type { STRMatch, MarkerCount } from './constants';
 
-// Нормализация значения маркера
 export function normalizeMarkerValue(value: string | number): number {
   if (typeof value === 'undefined' || value === null || value === '') return NaN;
   return parseInt(String(value).trim());
 }
 
-// Подсчет разницы между значениями маркеров
 export function calculateMarkerDifference(value1: string, value2: string, marker: string): number {
   const isPalindromic = marker in palindromes;
 
@@ -19,8 +17,13 @@ export function calculateMarkerDifference(value1: string, value2: string, marker
     return Math.min(diff, 2);
   }
 
-  const vals1 = value1.split('-');
-  const vals2 = value2.split('-');
+  const vals1 = value1.split(/[-,]/);
+  const vals2 = value2.split(/[-,]/);
+  
+  if (marker in palindromes && vals1.length !== palindromes[marker as keyof typeof palindromes]) {
+    return NaN;
+  }
+
   if (vals1.length !== vals2.length) return NaN;
 
   let totalDiff = 0;
@@ -41,50 +44,23 @@ export interface GeneticDistanceResult {
   hasAllRequiredMarkers: boolean;
 }
 
-// Подсчет генетической дистанции
 export function calculateGeneticDistance(
   profile1: Record<string, string>,
-  profile2: Record<string, string>,
+  profile2: Record<string, string>, 
   selectedMarkerCount: MarkerCount
 ): GeneticDistanceResult {
   const markersToCompare = markerGroups[selectedMarkerCount];
   let totalDistance = 0;
   let identicalCount = 0;
 
-  // Ограничение индекса маркеров по выбранному диапазону
   const maxIndex = {
     12: markersToCompare.indexOf('DYS389ii'),
     37: markersToCompare.indexOf('DYS438'),
     67: markersToCompare.indexOf('DYS492'),
-    111: markersToCompare.length - 1,
+    111: markersToCompare.length - 1
   }[selectedMarkerCount];
 
   let comparedCount = 0;
-
-  // Подсчёт маркеров в пределах диапазона
-  const availableMarkers = markersToCompare.slice(0, maxIndex + 1).filter(marker => 
-    profile1[marker]?.trim() && profile2[marker]?.trim()
-  ).length;
-
-  // Минимальные требования по количеству маркеров
-  const minRequired = {
-    12: 10,
-    37: 25,
-    67: 25,
-    111: 25,
-  }[selectedMarkerCount];
-
-  if (availableMarkers < minRequired) {
-    return {
-      distance: Infinity, // Бесконечная дистанция, чтобы исключить из совпадений
-      comparedMarkers: availableMarkers,
-      identicalMarkers: 0,
-      percentIdentical: 0,
-      hasAllRequiredMarkers: false,
-    };
-  }
-
-  // Основной цикл сравнения маркеров
   for (let i = 0; i <= maxIndex; i++) {
     const marker = markersToCompare[i];
     const value1 = profile1[marker]?.trim();
@@ -100,12 +76,19 @@ export function calculateGeneticDistance(
     if (diff === 0) identicalCount++;
   }
 
+  const minRequired = {
+    12: 10,
+    37: 25,
+    67: 25,
+    111: 25
+  }[selectedMarkerCount];
+
   return {
     distance: totalDistance,
     comparedMarkers: comparedCount,
     identicalMarkers: identicalCount,
     percentIdentical: comparedCount > 0 ? (identicalCount / comparedCount) * 100 : 0,
-    hasAllRequiredMarkers: comparedCount >= minRequired,
+    hasAllRequiredMarkers: comparedCount >= minRequired
   };
 }
 
@@ -114,7 +97,6 @@ export interface MarkerRarityResult {
   rarityStyle: React.CSSProperties | null;
 }
 
-// Подсчет редкости маркера
 export function calculateMarkerRarity(
   matches: STRMatch[],
   marker: string,
@@ -135,18 +117,18 @@ export function calculateMarkerRarity(
     return { rarity: percentage, rarityStyle: null };
   }
 
-  let backgroundColor: string;
-  if (percentage <= 4) {
-    backgroundColor = '#800000';
-  } else if (percentage <= 8) {
-    backgroundColor = '#B22222';
-  } else if (percentage <= 12) {
-    backgroundColor = '#DC3545';
-  } else if (percentage <= 20) {
-    backgroundColor = '#F08080';
-  } else if (percentage <= 33) {
-    backgroundColor = '#FFB6C1';
-  } else {
+  const getBackgroundColor = (percentage: number): string => {
+    if (percentage <= 4) return '#800000';
+    if (percentage <= 8) return '#B22222';
+    if (percentage <= 12) return '#DC3545';
+    if (percentage <= 20) return '#F08080';
+    if (percentage <= 33) return '#FFB6C1';
+    return 'transparent';
+  };
+
+  const backgroundColor = getBackgroundColor(percentage);
+  
+  if (backgroundColor === 'transparent') {
     return { rarity: percentage, rarityStyle: null };
   }
 

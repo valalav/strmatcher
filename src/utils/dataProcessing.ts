@@ -2,10 +2,10 @@ import { markers, palindromes } from './constants';
 import Papa from 'papaparse';
 import type { STRProfile } from './constants';
 
+// Кэш для оптимизации очистки значений
 const valueCache = new Map<string, string>();
 
-// Очистка значения от лишних символов
-export function cleanValue(value: string | number | null | undefined): string {
+export function cleanValue(value: any): string {
   if (!value) return '';
   
   const key = String(value);
@@ -39,18 +39,15 @@ function processPalindromicMarker(value: string, marker: string): string {
     .join('-');
 }
 
-// Парсинг CSV данных
-export function parseCSVData(
-  text: string,
-  onProgress?: (progress: number) => void
-): Promise<STRProfile[]> {
+// Обработка CSV данных с поддержкой прогресса
+export function parseCSVData(text: string, onProgress?: (progress: number) => void): Promise<STRProfile[]> {
   return new Promise((resolve, reject) => {
     try {
       const lines = text.split('\n').length;
       const profiles: STRProfile[] = [];
       let currentLine = 0;
 
-      Papa.parse<Record<string, string>>(text, {
+      Papa.parse(text, {
         header: true,
         skipEmptyLines: true,
         transformHeader: (header: string) => {
@@ -60,35 +57,35 @@ export function parseCSVData(
             .replace(/[^\x20-\x7E]/g, '')
             .replace(/\s+/g, ' ');
 
-          return cleanHeader === 'KitNumber' || cleanHeader === 'Kit_Number'
-            ? 'Kit Number'
-            : cleanHeader;
+          if (cleanHeader === 'KitNumber' || cleanHeader === 'Kit_Number') {
+            return 'Kit Number';
+          }
+          return cleanHeader;
         },
-        step: (results: Papa.ParseStepResult<Record<string, string>>) => {
+        step: (results, parser) => {
           try {
-            if (results.data && typeof results.data === 'object' && 'Kit Number' in results.data) {
+            if (results.data['Kit Number']) {
               const cleanString = (value: string | undefined) =>
                 value ? value.replace(/\s+/g, ' ').trim() : undefined;
+
               const profile: STRProfile = {
-                kitNumber: cleanString('Kit Number' in results.data ? results.data['Kit Number'] : undefined) ?? '',
-                name: cleanString('Name' in results.data ? results.data['Name'] : undefined) ?? '',
-                country: cleanString('Country' in results.data ? results.data['Country'] : undefined) ?? '',
-                haplogroup: cleanString('Haplogroup' in results.data ? results.data['Haplogroup'] : undefined) ?? '',
-                markers: {},
+                kitNumber: cleanString(results.data['Kit Number']),
+                name: cleanString(results.data['Name']),
+                country: cleanString(results.data['Country']),
+                haplogroup: cleanString(results.data['Haplogroup']),
+                markers: {}
               };
 
+              // Обработка маркеров
               let hasMarkers = false;
-              markers.forEach((marker) => {
-                if (marker in results.data && results.data[marker]) {
+              markers.forEach(marker => {
+                if (results.data[marker]) {
                   const value = results.data[marker];
-                  const cleanedValue = cleanString(value);
-                  if (cleanedValue) {
-                    profile.markers[marker] = processPalindromicMarker(
-                      cleanedValue,
-                      marker
-                    );
-                    hasMarkers = true;
-                  }
+                  profile.markers[marker] = processPalindromicMarker(
+                    cleanString(value),
+                    marker
+                  );
+                  hasMarkers = true;
                 }
               });
 
@@ -101,7 +98,8 @@ export function parseCSVData(
             if (onProgress) {
               onProgress((currentLine / lines) * 100);
             }
-          } catch (error: unknown) {
+
+          } catch (error) {
             console.warn('Error processing row:', error);
           }
         },
@@ -112,60 +110,53 @@ export function parseCSVData(
             resolve(profiles);
           }
         },
-        error: (error: Error) => {
+        error: (error) => {
           reject(new Error(`CSV parsing failed: ${error.message}`));
-        },
+        }
       });
     } catch (error) {
       reject(error);
     }
   });
 }
+
+// Создание поискового индекса
 export class ProfileIndex {
-  private index = new Map<string, Map<string, Set<string>>>();
+  private index: Map<string, Map<string, Set<string>>> = new Map();
 
   constructor(profiles: STRProfile[]) {
     this.buildIndex(profiles);
   }
 
   private buildIndex(profiles: STRProfile[]) {
-    profiles.forEach((profile) => {
+    profiles.forEach(profile => {
       Object.entries(profile.markers).forEach(([marker, value]) => {
         if (!this.index.has(marker)) {
           this.index.set(marker, new Map());
         }
         
-        const markerIndex = this.index.get(marker);
-        if (markerIndex) {
-          if (!markerIndex.has(value)) {
-            markerIndex.set(value, new Set());
-          }
-          
-          const valueSet = markerIndex.get(value);
-          if (valueSet) {
-            valueSet.add(profile.kitNumber);
-          }
+        const markerIndex = this.index.get(marker)!;
+        if (!markerIndex.has(value)) {
+          markerIndex.set(value, new Set());
         }
+        
+        markerIndex.get(value)!.add(profile.kitNumber);
       });
     });
   }
 
   findMatchingProfiles(marker: string, value: string): Set<string> {
-    const markerMap = this.index.get(marker);
-    if (!markerMap) return new Set();
-    const valueSet = markerMap.get(value);
-    return valueSet || new Set();
+    return this.index.get(marker)?.get(value) || new Set();
   }
 
   getMarkerValues(marker: string): string[] {
-    const markerMap = this.index.get(marker);
-    return markerMap ? Array.from(markerMap.keys()) : [];
+    return Array.from(this.index.get(marker)?.keys() || []);
   }
 }
 
 // Кэширование результатов
-const resultCache = new Map<string, { data: unknown; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000;
+const resultCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 минут
 
 export function getCachedResult<T>(key: string, compute: () => T): T {
   const cached = resultCache.get(key);
@@ -178,7 +169,6 @@ export function getCachedResult<T>(key: string, compute: () => T): T {
   return result;
 }
 
-// Очистка кэша
 export function clearCache() {
   valueCache.clear();
   resultCache.clear();

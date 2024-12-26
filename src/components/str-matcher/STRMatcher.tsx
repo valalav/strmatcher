@@ -20,9 +20,10 @@ import DataRepositories from './DataRepositories';
 import LoadedKits from './LoadedKits';
 
 interface WorkerResponse {
-  type: 'progress' | 'complete';
-  data: STRMatch[];
+  type: 'progress' | 'complete' | 'error';
+  data?: STRMatch[];
   progress?: number;
+  error?: string;
 }
 
 interface WorkerParams {
@@ -31,6 +32,13 @@ interface WorkerParams {
   markerCount: MarkerCount;
   maxDistance: number;
   maxMatches: number;
+}
+
+interface SearchFilters {
+  kitNumber: string;
+  name: string;
+  haplogroup: string;
+  country: string;
 }
 
 const STRMatcher: React.FC = () => {
@@ -47,11 +55,16 @@ const STRMatcher: React.FC = () => {
   const [kitNumber, setKitNumber] = useState('');
   const [searchHistory, setSearchHistory] = useState<HistoryItem[]>([]);
   const [markerSortOrder, setMarkerSortOrder] = useState<'default' | 'mutation_rate'>('mutation_rate');
+  const [filters, setFilters] = useState<SearchFilters>({
+    kitNumber: '',
+    name: '',
+    haplogroup: '',
+    country: ''
+  });
 
   const { execute: executeMatching } = useWorker<WorkerParams, WorkerResponse>({
-    onProgress: (progress) => {
-      setProgress(progress);
-    }
+    onProgress: (progress: number) => setProgress(progress),
+    onError: (error: Error) => setError(error.message)
   });
 
   useEffect(() => {
@@ -97,21 +110,16 @@ const STRMatcher: React.FC = () => {
   };
 
   const handleFindMatches = async () => {
-    console.log("Starting handleFindMatches with:", {
+    console.log("Starting handleFindMatches:", {
       queryExists: !!query,
       queryKit: query?.kitNumber,
       databaseSize: database.length,
       markerCount,
-      maxDistance,
-      initialState: {
-        loading,
-        error,
-        matchesCount: matches.length,
-      },
+      maxDistance
     });
   
     if (!query || !database.length) {
-      console.log("Validation failed:", { query: !!query, databaseSize: database.length });
+      console.log("Validation failed:", {query: !!query, databaseSize: database.length});
       setError("Kit number and database required");
       return;
     }
@@ -121,102 +129,56 @@ const STRMatcher: React.FC = () => {
     setMatches([]);
   
     try {
-      console.log("Preparing marker ranges");
       const currentRange = markerGroups[markerCount];
-      const endMarkerIndex = {
+      const maxIndex = {
         12: currentRange.indexOf('DYS389ii'),
         37: currentRange.indexOf('DYS438'),
         67: currentRange.indexOf('DYS492'),
-        111: currentRange.length - 1,
+        111: currentRange.length - 1
       }[markerCount];
   
       const markersInRange: Record<string, string> = {};
-      for (let i = 0; i <= endMarkerIndex; i++) {
+      for (let i = 0; i <= maxIndex; i++) {
         const marker = currentRange[i];
         if (query.markers[marker]) {
           markersInRange[marker] = query.markers[marker];
         }
       }
   
-      console.log("Prepared query:", {
-        markersCount: Object.keys(markersInRange).length,
-        markers: markersInRange,
-        queryKit: query.kitNumber,
-      });
-  
       const compareQuery = {
         ...query,
         markers: markersInRange,
       };
   
-      // Внесение изменений: замена блока "Executing worker"
-      console.log("Executing worker with params:", {
-        queryKit: compareQuery.kitNumber,
-        dbSize: database.length,
-        markerCount,
-        maxDistance,
-      });
-  
-      const workerResponse = await executeMatching({
+      const response = await executeMatching({
         query: compareQuery,
-        database: database.filter((p) => p.kitNumber !== query.kitNumber),
+        database: database.filter(p => p.kitNumber !== query.kitNumber),
         markerCount,
         maxDistance,
-        maxMatches,
+        maxMatches
       });
   
-      console.log("Worker raw response:", workerResponse);
-  
-      if (!workerResponse || typeof workerResponse !== "object") {
-        console.error("Invalid worker response:", workerResponse);
-        throw new Error("Invalid worker response format");
+      // Теперь мы ожидаем массив совпадений напрямую
+      if (Array.isArray(response)) {
+        setMatches(response);
+      } else if (response && typeof response === 'object' && 'type' in response) {
+        if (response.type === 'complete' && Array.isArray(response.data)) {
+          setMatches(response.data);
+        } else if (response.type === 'error') {
+          throw new Error(response.error || 'Unknown worker error');
+        }
+      } else {
+        throw new Error('Invalid worker response format');
       }
   
-      if (!Array.isArray(workerResponse)) {
-        console.error("Response is not an array:", workerResponse);
-        throw new Error("Worker response must be an array");
-      }
-  
-      const matches = workerResponse.map((match) => ({
-        profile: {
-          kitNumber: match.profile.kitNumber,
-          name: match.profile.name || "",
-          country: match.profile.country || "",
-          haplogroup: match.profile.haplogroup || "",
-          markers: { ...match.profile.markers },
-        },
-        distance: match.distance,
-        comparedMarkers: match.comparedMarkers,
-        identicalMarkers: match.identicalMarkers,
-        percentIdentical: match.percentIdentical,
-        hasAllRequiredMarkers: match.hasAllRequiredMarkers,
-      }));
-  
-      console.log("Processed matches:", {
-        count: matches.length,
-        first: matches[0]?.profile.kitNumber,
-        last: matches[matches.length - 1]?.profile.kitNumber,
-      });
-  
-      setMatches(matches);
     } catch (error) {
-      console.error("Error in handleFindMatches:", {
-        error,
-        message: error instanceof Error ? error.message : String(error),
-        state: {
-          queryKit: query?.kitNumber,
-          dbSize: database.length,
-          markerCount,
-        },
-      });
-      setError(error instanceof Error ? error.message : "Unknown error occurred");
+      console.error("Error in handleFindMatches:", error);
+      setError(error instanceof Error ? error.message : 'Unknown error occurred');
       setMatches([]);
     } finally {
       setLoading(false);
     }
   };
-  
-
   const populateFromKitNumber = (selectedKitNumber: string) => {
     if (!selectedKitNumber) {
       setError('Please enter Kit Number');
@@ -267,16 +229,92 @@ const STRMatcher: React.FC = () => {
     setMatches(prev => prev.filter(m => m.profile.kitNumber !== matchKitNumber));
   };
 
+  const getFilteredProfiles = () => {
+    return database.filter(profile => {
+      const kitMatch = profile.kitNumber.toLowerCase().includes(filters.kitNumber.toLowerCase());
+      const nameMatch = (profile.name || '').toLowerCase().includes(filters.name.toLowerCase());
+      const haploMatch = (profile.haplogroup || '').toLowerCase().includes(filters.haplogroup.toLowerCase());
+      const countryMatch = (profile.country || '').toLowerCase().includes(filters.country.toLowerCase());
+      return kitMatch && nameMatch && haploMatch && countryMatch;
+    });
+  };
+
   if (!mounted) return null;
 
   return (
     <div className="p-4 max-w-[1800px] mx-auto">
       <div className="flex gap-4">
         <div className="w-64 flex-none flex flex-col gap-4">
-          <LoadedKits 
-            profiles={database}
-            onKitNumberClick={populateFromKitNumber}
-          />
+          <Card className="h-screen">
+            <CardHeader>
+              <CardTitle>Loaded Kits ({database.length})</CardTitle>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Search by Kit Number..."
+                  className="w-full p-2 border rounded"
+                  value={filters.kitNumber}
+                  onChange={(e) => setFilters(prev => ({...prev, kitNumber: e.target.value}))}
+                />
+                <input
+                  type="text"
+                  placeholder="Search by Name..."
+                  className="w-full p-2 border rounded"
+                  value={filters.name}
+                  onChange={(e) => setFilters(prev => ({...prev, name: e.target.value}))}
+                />
+                <input
+                  type="text"
+                  placeholder="Search by Haplogroup..."
+                  className="w-full p-2 border rounded"
+                  value={filters.haplogroup}
+                  onChange={(e) => setFilters(prev => ({...prev, haplogroup: e.target.value}))}
+                />
+                <input
+                  type="text"
+                  placeholder="Search by Country..."
+                  className="w-full p-2 border rounded"
+                  value={filters.country}
+                  onChange={(e) => setFilters(prev => ({...prev, country: e.target.value}))}
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+            <div className="overflow-y-auto h-[calc(100vh-320px)]">
+              {getFilteredProfiles().map(profile => (
+                <div 
+                  key={profile.kitNumber}
+                  className="flex flex-col p-3 border-b hover:bg-gray-50 cursor-pointer"
+                  onClick={() => populateFromKitNumber(profile.kitNumber)}
+                >
+                  <div className="flex items-baseline gap-2">
+                    <div className="text-blue-500 hover:text-blue-700 font-medium">
+                      {profile.kitNumber}
+                    </div>
+                    {profile.name && (
+                      <div className="text-sm text-gray-600">
+                        {profile.name}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1 mt-1">
+                    {profile.country && (
+                      <div className="text-sm">
+                        <span className="text-gray-500">Region:</span> {profile.country}
+                      </div>
+                    )}
+                    {profile.haplogroup && (
+                      <div className="text-sm">
+                        <span className="text-gray-500">Haplogroup:</span> {profile.haplogroup}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            </CardContent>
+          </Card>
           {searchHistory.length > 0 && (
             <SearchHistory 
               history={searchHistory}
@@ -284,6 +322,7 @@ const STRMatcher: React.FC = () => {
             />
           )}
         </div>
+
         <div className="flex-1">
           <DataRepositories onLoadData={loadDataFromUrl} setDatabase={setDatabase} />
           
@@ -396,9 +435,7 @@ const STRMatcher: React.FC = () => {
                     </div>
 
                     <button
-                      className={`px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 ${
-                        loading ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      className={`px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                       onClick={handleFindMatches}
                       disabled={loading || !kitNumber || database.length === 0}
                     >

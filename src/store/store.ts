@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import userProfileReducer from './userProfile';
 import { storageMiddleware } from './storageMiddleware';
 
-const store = configureStore({
+export const store = configureStore({
   reducer: {
     userProfile: userProfileReducer
   },
@@ -17,4 +17,3 @@ const store = configureStore({
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
-export { store };

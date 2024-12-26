@@ -23,7 +23,7 @@ const LoadedKits: React.FC<LoadedKitsProps> = ({ profiles, onKitNumberClick }) =
       
       return kitNumber.includes(searchLower) || name.includes(searchLower);
     })
-    .slice(0, 1000);
+    .slice(0, 1000); // Ограничиваем количество отображаемых результатов
 
   return (
     <Card className="h-screen">
@@ -39,12 +39,13 @@ const LoadedKits: React.FC<LoadedKitsProps> = ({ profiles, onKitNumberClick }) =
       </CardHeader>
       <CardContent>
         <div className="overflow-y-auto h-[calc(100vh-180px)]">
-          {filteredProfiles.map(profile => {
+          {filteredProfiles.map((profile, index) => {
+            // Пропускаем профили без kitNumber
             if (!profile || !profile.kitNumber) return null;
             
             return (
               <div 
-                key={profile.kitNumber}
+                key={profile.kitNumber} // Используем только kitNumber как ключ
                 className="p-2 border-b hover:bg-gray-50 cursor-pointer"
                 onClick={() => onKitNumberClick(profile.kitNumber)}
               >
