@@ -119,7 +119,7 @@ const STRMatcher: React.FC = () => {
       const currentRange = markerGroups[markerCount];
       const endMarkerIndex = {
         12: currentRange.indexOf('DYS389ii'),
-        37: currentRange.indexOf('DYS438'),
+        37: currentRange.indexOf('DYS438'), 
         67: currentRange.indexOf('DYS492'),
         111: currentRange.length - 1
       }[markerCount];
@@ -148,7 +148,7 @@ const STRMatcher: React.FC = () => {
         databaseSize: database.filter(p => p.kitNumber !== query.kitNumber).length
       });
   
-      const result = await executeMatching({
+      const response = await executeMatching({
         query: compareQuery,
         database: database.filter((p) => p.kitNumber !== query.kitNumber),
         markerCount,
@@ -157,35 +157,24 @@ const STRMatcher: React.FC = () => {
       });
   
       console.log("Worker execution complete, result:", {
-        resultExists: !!result,
-        hasData: !!result?.data,
-        dataLength: result?.data?.length
+        resultExists: !!response,
+        hasData: !!response?.data,
+        dataLength: response?.data?.length
       });
   
-      if (result?.data) {
+      if (response?.type === 'complete' && Array.isArray(response.data)) {
         console.log('Setting matches:', {
-          count: result.data.length,
-          firstMatch: result.data[0],
-          hasMarkers: result.data.some(m => m.profile?.markers),
-          markerSample: result.data[0]?.profile?.markers,
-          distances: result.data.slice(0, 5).map(m => m.distance)
+          count: response.data.length,
+          firstMatch: response.data[0]
         });
-        setMatches(result.data);
+        setMatches(response.data);
       } else {
         console.warn('No matches data in result');
         setMatches([]);
       }
   
     } catch (error) {
-      console.error("Error in handleFindMatches:", {
-        error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        state: {
-          query: !!query,
-          database: database.length,
-          markerCount
-        }
-      });
+      console.error("Error:", error);
       setError(error instanceof Error ? error.message : 'Unknown error');
       setMatches([]);
     } finally {
