@@ -102,10 +102,16 @@ const STRMatcher: React.FC = () => {
       queryKit: query?.kitNumber,
       databaseSize: database.length,
       markerCount,
-      maxDistance
+      maxDistance,
+      initialState: {
+        loading,
+        error,
+        matchesCount: matches.length
+      }
     });
   
     if (!query || !database.length) {
+      console.log("Validation failed:", {query: !!query, databaseSize: database.length});
       setError("Kit number and database required");
       return;
     }
@@ -119,7 +125,7 @@ const STRMatcher: React.FC = () => {
       const currentRange = markerGroups[markerCount];
       const endMarkerIndex = {
         12: currentRange.indexOf('DYS389ii'),
-        37: currentRange.indexOf('DYS438'), 
+        37: currentRange.indexOf('DYS438'),
         67: currentRange.indexOf('DYS492'),
         111: currentRange.length - 1
       }[markerCount];
@@ -132,9 +138,10 @@ const STRMatcher: React.FC = () => {
         }
       }
   
-      console.log("Markers in range:", {
-        total: Object.keys(markersInRange).length,
-        markers: markersInRange
+      console.log("Prepared query:", {
+        markersCount: Object.keys(markersInRange).length,
+        markers: markersInRange,
+        queryKit: query.kitNumber 
       });
   
       const compareQuery = {
@@ -142,41 +149,75 @@ const STRMatcher: React.FC = () => {
         markers: markersInRange,
       };
   
-      console.log("Executing worker with query:", {
-        kit: compareQuery.kitNumber,
-        markersCount: Object.keys(compareQuery.markers).length,
-        databaseSize: database.filter(p => p.kitNumber !== query.kitNumber).length
-      });
+      console.log("Executing worker");
   
-      const response = await executeMatching({
+      const workerResponse = await executeMatching({
         query: compareQuery,
-        database: database.filter((p) => p.kitNumber !== query.kitNumber),
+        database: database.filter(p => p.kitNumber !== query.kitNumber),
         markerCount,
         maxDistance,
         maxMatches
       });
   
-      console.log("Worker execution complete, result:", {
-        resultExists: !!response,
-        hasData: !!response?.data,
-        dataLength: response?.data?.length
+      console.log("Worker raw response:", workerResponse);
+  
+      if (!workerResponse) {
+        console.error("No response from worker");
+        throw new Error("No response from worker");
+      }
+  
+      console.log("Worker response details:", {
+        type: workerResponse.type,
+        hasData: !!workerResponse.data,
+        dataLength: workerResponse.data?.length,
+        firstMatch: workerResponse.data?.[0]
       });
   
-      if (response?.type === 'complete' && Array.isArray(response.data)) {
-        console.log('Setting matches:', {
-          count: response.data.length,
-          firstMatch: response.data[0]
+      if (workerResponse.type === 'complete' && Array.isArray(workerResponse.data)) {
+        const matches = workerResponse.data.map(match => ({
+          profile: {
+            kitNumber: match.profile.kitNumber,
+            name: match.profile.name || '',
+            country: match.profile.country || '',
+            haplogroup: match.profile.haplogroup || '',
+            markers: {...match.profile.markers}
+          },
+          distance: match.distance,
+          comparedMarkers: match.comparedMarkers,
+          identicalMarkers: match.identicalMarkers,
+          percentIdentical: match.percentIdentical,
+          hasAllRequiredMarkers: match.hasAllRequiredMarkers
+        }));
+  
+        console.log("Processed matches:", {
+          count: matches.length,
+          firstMatch: matches[0],
+          sampleMarkers: matches[0]?.profile.markers
         });
-        setMatches(response.data);
+  
+        setMatches(matches);
       } else {
-        console.warn('No matches data in result');
-        setMatches([]);
+        console.error("Invalid worker response:", workerResponse);
+        throw new Error("Invalid response format from worker");
       }
   
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error in handleFindMatches:", {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        state: {
+          query: !!query,
+          database: database.length,
+          markerCount,
+          currentState: {
+            loading,
+            error,
+            matchesCount: matches.length
+          }
+        }
+      });
       setError(error instanceof Error ? error.message : 'Unknown error');
-      setMatches([]);
+      setMatches([]); 
     } finally {
       setLoading(false);
     }
