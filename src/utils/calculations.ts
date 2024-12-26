@@ -44,21 +44,47 @@ export interface GeneticDistanceResult {
 // Подсчет генетической дистанции
 export function calculateGeneticDistance(
   profile1: Record<string, string>,
-  profile2: Record<string, string>, 
+  profile2: Record<string, string>,
   selectedMarkerCount: MarkerCount
 ): GeneticDistanceResult {
   const markersToCompare = markerGroups[selectedMarkerCount];
   let totalDistance = 0;
   let identicalCount = 0;
 
+  // Ограничение индекса маркеров по выбранному диапазону
   const maxIndex = {
     12: markersToCompare.indexOf('DYS389ii'),
     37: markersToCompare.indexOf('DYS438'),
     67: markersToCompare.indexOf('DYS492'),
-    111: markersToCompare.length - 1
+    111: markersToCompare.length - 1,
   }[selectedMarkerCount];
 
   let comparedCount = 0;
+
+  // Подсчёт маркеров в пределах диапазона
+  const availableMarkers = markersToCompare.slice(0, maxIndex + 1).filter(marker => 
+    profile1[marker]?.trim() && profile2[marker]?.trim()
+  ).length;
+
+  // Минимальные требования по количеству маркеров
+  const minRequired = {
+    12: 10,
+    37: 25,
+    67: 25,
+    111: 25,
+  }[selectedMarkerCount];
+
+  if (availableMarkers < minRequired) {
+    return {
+      distance: Infinity, // Бесконечная дистанция, чтобы исключить из совпадений
+      comparedMarkers: availableMarkers,
+      identicalMarkers: 0,
+      percentIdentical: 0,
+      hasAllRequiredMarkers: false,
+    };
+  }
+
+  // Основной цикл сравнения маркеров
   for (let i = 0; i <= maxIndex; i++) {
     const marker = markersToCompare[i];
     const value1 = profile1[marker]?.trim();
@@ -74,19 +100,12 @@ export function calculateGeneticDistance(
     if (diff === 0) identicalCount++;
   }
 
-  const minRequired = {
-    12: 10,
-    37: 25,
-    67: 25,
-    111: 25
-  }[selectedMarkerCount];
-
   return {
     distance: totalDistance,
     comparedMarkers: comparedCount,
     identicalMarkers: identicalCount,
     percentIdentical: comparedCount > 0 ? (identicalCount / comparedCount) * 100 : 0,
-    hasAllRequiredMarkers: comparedCount >= minRequired
+    hasAllRequiredMarkers: comparedCount >= minRequired,
   };
 }
 
