@@ -97,7 +97,8 @@ const STRMatcher: React.FC = () => {
   };
 
   const handleFindMatches = async () => {
-    console.log('Starting search with:', {
+    console.log("Starting handleFindMatches with:", {
+      queryExists: !!query,
       queryKit: query?.kitNumber,
       databaseSize: database.length,
       markerCount,
@@ -114,6 +115,7 @@ const STRMatcher: React.FC = () => {
     setMatches([]);
   
     try {
+      console.log("Preparing marker ranges");
       const currentRange = markerGroups[markerCount];
       const endMarkerIndex = {
         12: currentRange.indexOf('DYS389ii'),
@@ -130,30 +132,60 @@ const STRMatcher: React.FC = () => {
         }
       }
   
+      console.log("Markers in range:", {
+        total: Object.keys(markersInRange).length,
+        markers: markersInRange
+      });
+  
       const compareQuery = {
         ...query,
         markers: markersInRange,
       };
   
-      console.log('Prepared query:', compareQuery);
+      console.log("Executing worker with query:", {
+        kit: compareQuery.kitNumber,
+        markersCount: Object.keys(compareQuery.markers).length,
+        databaseSize: database.filter(p => p.kitNumber !== query.kitNumber).length
+      });
   
       const result = await executeMatching({
         query: compareQuery,
-        database: database.filter(p => p.kitNumber !== query.kitNumber),
+        database: database.filter((p) => p.kitNumber !== query.kitNumber),
         markerCount,
         maxDistance,
         maxMatches
       });
   
-      console.log('Received result:', result);
+      console.log("Worker execution complete, result:", {
+        resultExists: !!result,
+        hasData: !!result?.data,
+        dataLength: result?.data?.length
+      });
   
       if (result?.data) {
-        console.log('Setting matches:', result.data.length);
+        console.log('Setting matches:', {
+          count: result.data.length,
+          firstMatch: result.data[0],
+          hasMarkers: result.data.some(m => m.profile?.markers),
+          markerSample: result.data[0]?.profile?.markers,
+          distances: result.data.slice(0, 5).map(m => m.distance)
+        });
         setMatches(result.data);
+      } else {
+        console.warn('No matches data in result');
+        setMatches([]);
       }
   
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error in handleFindMatches:", {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        state: {
+          query: !!query,
+          database: database.length,
+          markerCount
+        }
+      });
       setError(error instanceof Error ? error.message : 'Unknown error');
       setMatches([]);
     } finally {
