@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-export interface WorkerResponse {
+export interface WorkerResponse<TOutput = unknown> {
   type: 'complete' | 'progress' | 'error';
-  data?: any;
+  data?: TOutput;
   progress?: number;
   error?: string;
 }
@@ -12,7 +12,7 @@ interface UseWorkerOptions {
   onError?: (error: Error) => void;
 }
 
-export function useWorker<TInput = any, TOutput = any>(options?: UseWorkerOptions) {
+export function useWorker<TInput = unknown, TOutput = unknown>(options?: UseWorkerOptions) {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(false);
   const workerRef = useRef<Worker | null>(null);
@@ -64,7 +64,7 @@ export function useWorker<TInput = any, TOutput = any>(options?: UseWorkerOption
         setLoading(true);
         setError(null);
 
-        const messageHandler = (e: MessageEvent<WorkerResponse>) => {
+        const messageHandler = (e: MessageEvent<WorkerResponse<TOutput>>) => {
           console.log('Received worker message:', e.data);
           switch (e.data.type) {
             case 'progress':
