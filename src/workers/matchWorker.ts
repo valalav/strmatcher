@@ -1,19 +1,19 @@
 import { STRProfile, STRMatch, MarkerCount } from '@/utils/constants';
 import { calculateGeneticDistance } from '@/utils/calculations';
 
-interface WorkerParams {
-  query: STRProfile;
-  database: STRProfile[];
-  markerCount: MarkerCount;
-  maxDistance: number;
-  maxMatches: number;
-}
-
 export interface WorkerResponse {
   type: 'progress' | 'complete' | 'error';
   data?: STRMatch[];
   progress?: number;
-  message?: string;
+  error?: string;
+}
+
+interface WorkerParams {
+  query: STRProfile;
+  database: STRProfile[];
+  markerCount: MarkerCount; 
+  maxDistance: number;
+  maxMatches: number;
 }
 
 const findMatches = (
@@ -23,19 +23,19 @@ const findMatches = (
   maxDistance: number,
   maxMatches: number
 ): STRMatch[] => {
-
-  console.log('Worker findMatches started:', {
+  
+  console.log('Worker starting match search with params:', {
     queryKit: query.kitNumber,
-    queryMarkers: Object.keys(query.markers).length,
-    databaseSize: database.length,
-    markerCount,
-    maxDistance
+    dbSize: database.length,
+    markers: markerCount,
+    maxDist: maxDistance,
+    maxMatches
   });
 
   if (!query?.markers || !database?.length || !markerCount) {
-    console.error('Invalid input parameters:', {
+    console.error('Invalid input params:', {
       hasMarkers: !!query?.markers,
-      databaseLength: database?.length,
+      dbLength: database?.length,
       markerCount
     });
     return [];
@@ -44,23 +44,26 @@ const findMatches = (
   const matches: STRMatch[] = [];
 
   try {
-    database.forEach((profile, index) => {
+    let processedCount = 0;
+    
+    database.forEach((profile) => {
+      processedCount++;
+      
+      if (processedCount % 100 === 0) {
+        console.log(`Processed ${processedCount}/${database.length} profiles`);
+      }
+
       if (!profile?.markers || profile.kitNumber === query.kitNumber) {
-        console.log('Skipping profile:', {
-          hasMarkers: !!profile?.markers,
-          kitNumber: profile?.kitNumber,
-          index
-        });
         return;
       }
 
       const result = calculateGeneticDistance(query.markers, profile.markers, markerCount);
-      console.log('Distance calculated:', {
+      
+      console.log('Distance calculation:', {
         kit: profile.kitNumber,
         distance: result.distance,
         compared: result.comparedMarkers,
-        identical: result.identicalMarkers,
-        maxDistance
+        identical: result.identicalMarkers
       });
 
       if (result.distance <= maxDistance) {
@@ -70,7 +73,7 @@ const findMatches = (
             name: profile.name || '',
             country: profile.country || '',
             haplogroup: profile.haplogroup || '',
-            markers: {...profile.markers} // Создаем копию маркеров
+            markers: {...profile.markers}
           },
           distance: result.distance,
           comparedMarkers: result.comparedMarkers,
@@ -79,41 +82,31 @@ const findMatches = (
           hasAllRequiredMarkers: result.hasAllRequiredMarkers
         };
 
-        console.log('Added match:', {
+        console.log('Found match:', {
           kit: match.profile.kitNumber,
           distance: match.distance,
-          markers: Object.keys(match.profile.markers).length
+          identical: match.identicalMarkers
         });
 
         matches.push(match);
       }
-
-      if (index % 100 === 0) {
-        self.postMessage({ type: 'progress', progress: Math.round((index / database.length) * 100) });
-      }
     });
-
-    console.log('Total matches found:', matches.length);
 
     const sortedMatches = matches
       .sort((a, b) => a.distance - b.distance)
       .slice(0, maxMatches);
 
-    console.log('After sorting and limiting:', {
-      before: matches.length,
-      after: sortedMatches.length,
+    console.log('Match search complete:', {
+      totalFound: matches.length,
+      afterSort: sortedMatches.length,
       firstMatch: sortedMatches[0]?.profile.kitNumber,
-      lastMatch: sortedMatches[sortedMatches.length - 1]?.profile.kitNumber
+      lastMatch: sortedMatches[sortedMatches.length-1]?.profile.kitNumber
     });
 
     return sortedMatches;
 
   } catch (error) {
-    console.error('Error in findMatches:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    console.error('Error in findMatches:', error);
     return [];
   }
 };
@@ -121,65 +114,32 @@ const findMatches = (
 self.onmessage = (event: MessageEvent<WorkerParams>) => {
   console.log('Worker received message:', {
     queryKit: event.data.query.kitNumber,
-    databaseSize: event.data.database.length,
-    markerCount: event.data.markerCount
+    dbSize: event.data.database.length
   });
 
   const { query, database, markerCount, maxDistance, maxMatches } = event.data;
   
   try {
     const matches = findMatches(query, database, markerCount, maxDistance, maxMatches);
-    
-    if (!matches || !matches.length) {
-      console.log('No matches found, sending empty array');
-      self.postMessage({
-        type: 'complete',
-        data: [],
-      } as WorkerResponse);
-      return;
-    }
 
-    console.log('Preparing response:', {
-      matchesFound: matches.length,
-      firstMatchKit: matches[0]?.profile.kitNumber,
-      firstMatchDistance: matches[0]?.distance
+    console.log('Preparing worker response:', {
+      matchCount: matches.length,
+      first: matches[0]?.profile.kitNumber
     });
 
-    const processedMatches = matches.map(match => ({
-      profile: {
-        kitNumber: match.profile.kitNumber,
-        name: match.profile.name || '',
-        country: match.profile.country || '',
-        haplogroup: match.profile.haplogroup || '',
-        markers: {...match.profile.markers}
-      },
-      distance: match.distance,
-      comparedMarkers: match.comparedMarkers,
-      identicalMarkers: match.identicalMarkers,
-      percentIdentical: match.percentIdentical,
-      hasAllRequiredMarkers: match.hasAllRequiredMarkers
-    }));
+    const response: WorkerResponse = {
+      type: 'complete' as const,
+      data: matches
+    };
 
-    console.log('Sending final response:', {
-      matchesCount: processedMatches.length,
-      firstProcessedMatch: processedMatches[0]
-    });
+    self.postMessage(response);
 
-    self.postMessage({
-      type: 'complete',
-      data: processedMatches
-    } as WorkerResponse);
-    
   } catch (error) {
-    console.error('Worker error:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    console.error('Worker error:', error);
     
     self.postMessage({
-      type: 'error',
-      message: error instanceof Error ? error.message : 'Unknown error in worker'
-    } as WorkerResponse);
+      type: 'error' as const,
+      error: error instanceof Error ? error.message : 'Unknown error in worker'
+    });
   }
 };

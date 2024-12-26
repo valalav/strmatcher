@@ -106,12 +106,12 @@ const STRMatcher: React.FC = () => {
       initialState: {
         loading,
         error,
-        matchesCount: matches.length
-      }
+        matchesCount: matches.length,
+      },
     });
   
     if (!query || !database.length) {
-      console.log("Validation failed:", {query: !!query, databaseSize: database.length});
+      console.log("Validation failed:", { query: !!query, databaseSize: database.length });
       setError("Kit number and database required");
       return;
     }
@@ -127,7 +127,7 @@ const STRMatcher: React.FC = () => {
         12: currentRange.indexOf('DYS389ii'),
         37: currentRange.indexOf('DYS438'),
         67: currentRange.indexOf('DYS492'),
-        111: currentRange.length - 1
+        111: currentRange.length - 1,
       }[markerCount];
   
       const markersInRange: Record<string, string> = {};
@@ -141,7 +141,7 @@ const STRMatcher: React.FC = () => {
       console.log("Prepared query:", {
         markersCount: Object.keys(markersInRange).length,
         markers: markersInRange,
-        queryKit: query.kitNumber 
+        queryKit: query.kitNumber,
       });
   
       const compareQuery = {
@@ -149,79 +149,73 @@ const STRMatcher: React.FC = () => {
         markers: markersInRange,
       };
   
-      console.log("Executing worker");
+      // Внесение изменений: замена блока "Executing worker"
+      console.log("Executing worker with params:", {
+        queryKit: compareQuery.kitNumber,
+        dbSize: database.length,
+        markerCount,
+        maxDistance,
+      });
   
       const workerResponse = await executeMatching({
         query: compareQuery,
-        database: database.filter(p => p.kitNumber !== query.kitNumber),
+        database: database.filter((p) => p.kitNumber !== query.kitNumber),
         markerCount,
         maxDistance,
-        maxMatches
+        maxMatches,
       });
   
       console.log("Worker raw response:", workerResponse);
   
-      if (!workerResponse) {
-        console.error("No response from worker");
-        throw new Error("No response from worker");
+      if (!workerResponse || typeof workerResponse !== "object") {
+        console.error("Invalid worker response:", workerResponse);
+        throw new Error("Invalid worker response format");
       }
   
-      console.log("Worker response details:", {
-        type: workerResponse.type,
-        hasData: !!workerResponse.data,
-        dataLength: workerResponse.data?.length,
-        firstMatch: workerResponse.data?.[0]
+      if (!Array.isArray(workerResponse)) {
+        console.error("Response is not an array:", workerResponse);
+        throw new Error("Worker response must be an array");
+      }
+  
+      const matches = workerResponse.map((match) => ({
+        profile: {
+          kitNumber: match.profile.kitNumber,
+          name: match.profile.name || "",
+          country: match.profile.country || "",
+          haplogroup: match.profile.haplogroup || "",
+          markers: { ...match.profile.markers },
+        },
+        distance: match.distance,
+        comparedMarkers: match.comparedMarkers,
+        identicalMarkers: match.identicalMarkers,
+        percentIdentical: match.percentIdentical,
+        hasAllRequiredMarkers: match.hasAllRequiredMarkers,
+      }));
+  
+      console.log("Processed matches:", {
+        count: matches.length,
+        first: matches[0]?.profile.kitNumber,
+        last: matches[matches.length - 1]?.profile.kitNumber,
       });
   
-      if (workerResponse.type === 'complete' && Array.isArray(workerResponse.data)) {
-        const matches = workerResponse.data.map(match => ({
-          profile: {
-            kitNumber: match.profile.kitNumber,
-            name: match.profile.name || '',
-            country: match.profile.country || '',
-            haplogroup: match.profile.haplogroup || '',
-            markers: {...match.profile.markers}
-          },
-          distance: match.distance,
-          comparedMarkers: match.comparedMarkers,
-          identicalMarkers: match.identicalMarkers,
-          percentIdentical: match.percentIdentical,
-          hasAllRequiredMarkers: match.hasAllRequiredMarkers
-        }));
-  
-        console.log("Processed matches:", {
-          count: matches.length,
-          firstMatch: matches[0],
-          sampleMarkers: matches[0]?.profile.markers
-        });
-  
-        setMatches(matches);
-      } else {
-        console.error("Invalid worker response:", workerResponse);
-        throw new Error("Invalid response format from worker");
-      }
-  
+      setMatches(matches);
     } catch (error) {
       console.error("Error in handleFindMatches:", {
         error,
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: error instanceof Error ? error.message : String(error),
         state: {
-          query: !!query,
-          database: database.length,
+          queryKit: query?.kitNumber,
+          dbSize: database.length,
           markerCount,
-          currentState: {
-            loading,
-            error,
-            matchesCount: matches.length
-          }
-        }
+        },
       });
-      setError(error instanceof Error ? error.message : 'Unknown error');
-      setMatches([]); 
+      setError(error instanceof Error ? error.message : "Unknown error occurred");
+      setMatches([]);
     } finally {
       setLoading(false);
     }
   };
+  
 
   const populateFromKitNumber = (selectedKitNumber: string) => {
     if (!selectedKitNumber) {
