@@ -127,24 +127,38 @@ const STRMatcher: React.FC = () => {
         markers: markersInRange,
       };
   
-      const response = await executeMatching({
-        query: compareQuery,
+      const workerResult = await executeMatching({
+        query: compareQuery, 
         database: database.filter((p) => p.kitNumber !== query.kitNumber),
         markerCount,
-        maxDistance,
-        maxMatches,
+        maxDistance, 
+        maxMatches
       });
   
-      // Проверяем наличие данных
-      if (response && response.data) {
-        setMatches(response.data);
+      if (workerResult?.data && Array.isArray(workerResult.data)) {
+        const transformedMatches = workerResult.data.map(match => ({
+          profile: {
+            kitNumber: match.profile.kitNumber,
+            name: match.profile.name || '',
+            country: match.profile.country || '',
+            haplogroup: match.profile.haplogroup || '',
+            markers: match.profile.markers || {}
+          },
+          distance: match.distance,
+          comparedMarkers: match.comparedMarkers,
+          identicalMarkers: match.identicalMarkers,
+          percentIdentical: match.percentIdentical,
+          hasAllRequiredMarkers: match.hasAllRequiredMarkers
+        }));
+  
+        setMatches(transformedMatches);
       } else {
-        throw new Error('No matches data received');
+        setMatches([]);
       }
   
     } catch (error) {
       console.error("Error finding matches:", error);
-      setError(`Error processing matches: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(error instanceof Error ? error.message : 'Unknown error');
       setMatches([]);
     } finally {
       setLoading(false);

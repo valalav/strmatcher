@@ -70,43 +70,43 @@ const findMatches = (
 };
 
 self.onmessage = (event: MessageEvent<WorkerParams>) => {
- const { query, database, markerCount, maxDistance, maxMatches } = event.data;
- 
- try {
-   const matches = findMatches(query, database, markerCount, maxDistance, maxMatches);
-   
-   if (!matches) {
-     self.postMessage({
-       type: 'complete',
-       data: []
-     });
-     return;
-   }
+  const { query, database, markerCount, maxDistance, maxMatches } = event.data;
+  
+  try {
+    const matches = findMatches(query, database, markerCount, maxDistance, maxMatches);
+    
+    if (!matches || !matches.length) {
+      self.postMessage({
+        type: 'complete',
+        data: []
+      } as WorkerResponse);
+      return;
+    }
 
-   const processedMatches = matches.map(match => ({
-     profile: {
-       kitNumber: match.profile.kitNumber,
-       name: match.profile.name || '',
-       country: match.profile.country || '',
-       haplogroup: match.profile.haplogroup || '',
-       markers: match.profile.markers
-     },
-     distance: match.distance,
-     comparedMarkers: match.comparedMarkers,
-     identicalMarkers: match.identicalMarkers,
-     percentIdentical: match.percentIdentical,
-     hasAllRequiredMarkers: match.hasAllRequiredMarkers
-   }));
+    const processedMatches: STRMatch[] = matches.map(match => ({
+      profile: {
+        kitNumber: match.profile.kitNumber,
+        name: match.profile.name || '',
+        country: match.profile.country || '',
+        haplogroup: match.profile.haplogroup || '',
+        markers: match.profile.markers || {}
+      },
+      distance: match.distance,
+      comparedMarkers: match.comparedMarkers,
+      identicalMarkers: match.identicalMarkers, 
+      percentIdentical: match.percentIdentical,
+      hasAllRequiredMarkers: match.hasAllRequiredMarkers
+    }));
 
-   self.postMessage({
-     type: 'complete',
-     data: processedMatches
-   });
-   
- } catch (error) {
-   self.postMessage({
-     type: 'error',
-     message: error instanceof Error ? error.message : 'Unknown error in worker'
-   });
- }
+    self.postMessage({
+      type: 'complete',
+      data: processedMatches
+    } as WorkerResponse);
+    
+  } catch (error) {
+    self.postMessage({
+      type: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error in worker'
+    } as WorkerResponse);
+  }
 };
