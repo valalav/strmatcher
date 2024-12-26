@@ -97,6 +97,13 @@ const STRMatcher: React.FC = () => {
   };
 
   const handleFindMatches = async () => {
+    console.log('Starting search with:', {
+      queryKit: query?.kitNumber,
+      databaseSize: database.length,
+      markerCount,
+      maxDistance
+    });
+  
     if (!query || !database.length) {
       setError("Kit number and database required");
       return;
@@ -104,6 +111,7 @@ const STRMatcher: React.FC = () => {
   
     setLoading(true);
     setError(null);
+    setMatches([]);
   
     try {
       const currentRange = markerGroups[markerCount];
@@ -127,43 +135,31 @@ const STRMatcher: React.FC = () => {
         markers: markersInRange,
       };
   
-      const workerResult = await executeMatching({
-        query: compareQuery, 
-        database: database.filter((p) => p.kitNumber !== query.kitNumber),
+      console.log('Prepared query:', compareQuery);
+  
+      const result = await executeMatching({
+        query: compareQuery,
+        database: database.filter(p => p.kitNumber !== query.kitNumber),
         markerCount,
-        maxDistance, 
+        maxDistance,
         maxMatches
       });
   
-      if (workerResult?.data && Array.isArray(workerResult.data)) {
-        const transformedMatches = workerResult.data.map(match => ({
-          profile: {
-            kitNumber: match.profile.kitNumber,
-            name: match.profile.name || '',
-            country: match.profile.country || '',
-            haplogroup: match.profile.haplogroup || '',
-            markers: match.profile.markers || {}
-          },
-          distance: match.distance,
-          comparedMarkers: match.comparedMarkers,
-          identicalMarkers: match.identicalMarkers,
-          percentIdentical: match.percentIdentical,
-          hasAllRequiredMarkers: match.hasAllRequiredMarkers
-        }));
+      console.log('Received result:', result);
   
-        setMatches(transformedMatches);
-      } else {
-        setMatches([]);
+      if (result?.data) {
+        console.log('Setting matches:', result.data.length);
+        setMatches(result.data);
       }
   
     } catch (error) {
-      console.error("Error finding matches:", error);
+      console.error("Error:", error);
       setError(error instanceof Error ? error.message : 'Unknown error');
       setMatches([]);
     } finally {
       setLoading(false);
     }
-  }; 
+  };
 
   const populateFromKitNumber = (selectedKitNumber: string) => {
     if (!selectedKitNumber) {

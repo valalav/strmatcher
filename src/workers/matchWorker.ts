@@ -17,56 +17,108 @@ export interface WorkerResponse {
 }
 
 const findMatches = (
- query: STRProfile,
- database: STRProfile[],
- markerCount: MarkerCount,
- maxDistance: number,
- maxMatches: number
+  query: STRProfile,
+  database: STRProfile[],
+  markerCount: MarkerCount,
+  maxDistance: number,
+  maxMatches: number
 ): STRMatch[] => {
 
- if (!query?.markers || !database?.length || !markerCount) {
-   return [];
- }
+  console.log('Starting findMatches with:', {
+    queryKit: query.kitNumber,
+    databaseSize: database.length,
+    markerCount,
+    maxDistance
+  });
 
- const matches: STRMatch[] = [];
+  if (!query?.markers || !database?.length || !markerCount) {
+    console.log('Invalid input parameters');
+    return [];
+  }
 
- try {
-   database.forEach((profile, index) => {
-     if (!profile?.markers || profile.kitNumber === query.kitNumber) {
-       return;
-     }
+  const matches: STRMatch[] = [];
 
-     const result = calculateGeneticDistance(query.markers, profile.markers, markerCount);
-     
-     if (!result.hasAllRequiredMarkers) {
-       return;
-     }
+  try {
+    database.forEach((profile, index) => {
+      if (!profile?.markers || profile.kitNumber === query.kitNumber) {
+        return;
+      }
 
-     if (result.distance <= maxDistance) {
-       matches.push({
-         profile,
-         distance: result.distance,
-         comparedMarkers: result.comparedMarkers,
-         identicalMarkers: result.identicalMarkers,
-         percentIdentical: result.percentIdentical,
-         hasAllRequiredMarkers: result.hasAllRequiredMarkers
-       });
-     }
+      const result = calculateGeneticDistance(query.markers, profile.markers, markerCount);
+      
+      if (result.distance <= maxDistance) {
+        matches.push({
+          profile: {
+            kitNumber: profile.kitNumber,
+            name: profile.name || '',
+            country: profile.country || '',
+            haplogroup: profile.haplogroup || '',
+            markers: profile.markers
+          },
+          distance: result.distance,
+          comparedMarkers: result.comparedMarkers,
+          identicalMarkers: result.identicalMarkers,
+          percentIdentical: result.percentIdentical,
+          hasAllRequiredMarkers: result.hasAllRequiredMarkers
+        });
+      }
 
-     if (index % 100 === 0) {
-       const progress = Math.round((index / database.length) * 100);
-       self.postMessage({ type: 'progress', progress });
-     }
-   });
+      if (index % 100 === 0) {
+        self.postMessage({ type: 'progress', progress: Math.round((index / database.length) * 100) });
+      }
+    });
 
-   return matches
-     .sort((a, b) => a.distance - b.distance)
-     .slice(0, maxMatches);
+    console.log('Found matches:', matches.length);
 
- } catch (error) {
-   console.error('Error in findMatches:', error);
-   return [];
- }
+    const sortedMatches = matches
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, maxMatches);
+
+    console.log('Sorted and limited matches:', sortedMatches.length);
+
+    return sortedMatches;
+
+  } catch (error) {
+    console.error('Error in findMatches:', error);
+    return [];
+  }
+};
+
+self.onmessage = (event: MessageEvent<WorkerParams>) => {
+  console.log('Worker received:', {
+    queryKit: event.data.query.kitNumber,
+    databaseSize: event.data.database.length,
+    markerCount: event.data.markerCount,
+  });
+
+  const { query, database, markerCount, maxDistance, maxMatches } = event.data;
+  
+  try {
+    const matches = findMatches(query, database, markerCount, maxDistance, maxMatches);
+    
+    if (!matches || !matches.length) {
+      console.log('No matches found');
+      self.postMessage({
+        type: 'complete',
+        data: []
+      });
+      return;
+    }
+
+    console.log('Sending matches back:', matches.length);
+
+    self.postMessage({
+      type: 'complete',
+      data: matches
+    });
+    
+  } catch (error) {
+    console.error('Worker error:', error);
+    self.postMessage({
+      type: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 };
 
 self.onmessage = (event: MessageEvent<WorkerParams>) => {
